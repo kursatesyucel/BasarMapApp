@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\BasarMapApp.Api.props" />
+</Project>

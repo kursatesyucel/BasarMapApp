@@ -1,7 +1,38 @@
+using BasarMapApp.Api.Data;
+using BasarMapApp.Api.Mappings;
+using BasarMapApp.Api.Repositories.Implementations;
+using BasarMapApp.Api.Repositories.Interfaces;
+using BasarMapApp.Api.Services.Implementations;
+using BasarMapApp.Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddControllers();
+
+// Configure PostgreSQL & PostGIS via NetTopologySuite
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsql => npgsql.UseNetTopologySuite()
+    )
+);
+
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+
+// Register repositories
+builder.Services.AddScoped<IPointRepository, PointRepository>();
+builder.Services.AddScoped<ILineRepository, LineRepository>();
+builder.Services.AddScoped<IPolygonRepository, PolygonRepository>();
+
+// Register services
+builder.Services.AddScoped<IPointService, PointService>();
+builder.Services.AddScoped<ILineService, LineService>();
+builder.Services.AddScoped<IPolygonService, PolygonService>();
+
+// Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -16,29 +47,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.UseAuthorization();
 
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+app.MapControllers();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
