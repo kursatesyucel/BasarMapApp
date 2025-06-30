@@ -18,7 +18,28 @@ namespace BasarMapApp.Api.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
-            // Eğer SRID ya da özel konfigürasyon gerekirse buraya ekleyebilirsiniz
+            
+            // MapPoint configuration
+            builder.Entity<MapPoint>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                
+                entity.Property(e => e.Description)
+                    .HasMaxLength(500);
+                
+                entity.Property(e => e.Geometry)
+                    .IsRequired()
+                    .HasColumnType("geometry (point, 4326)");
+                
+                entity.Property(e => e.CreatedAt)
+                    .IsRequired();
+                
+                entity.Property(e => e.UpdatedAt);
+            });
         }
     }
 }
