@@ -40,6 +40,44 @@ namespace BasarMapApp.Api.Data
                 
                 entity.Property(e => e.UpdatedAt);
             });
+
+            // MapLine configuration
+            builder.Entity<MapLine>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                
+                entity.Property(e => e.Geometry)
+                    .IsRequired()
+                    .HasColumnType("geometry (linestring, 4326)");
+                
+                entity.Property(e => e.CreatedAt)
+                    .IsRequired();
+                
+                entity.Property(e => e.UpdatedAt);
+            });
+
+            // MapPolygon configuration
+            builder.Entity<MapPolygon>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                
+                entity.Property(e => e.Geometry)
+                    .IsRequired()
+                    .HasColumnType("geometry (polygon, 4326)");
+                
+                entity.Property(e => e.CreatedAt)
+                    .IsRequired();
+                
+                entity.Property(e => e.UpdatedAt);
+            });
         }
     }
 }
