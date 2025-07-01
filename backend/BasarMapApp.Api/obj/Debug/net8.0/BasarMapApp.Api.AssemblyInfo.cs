@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BasarMapApp.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+afc3d632606cde88a8a9946c67f1f95c10dbead9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7fc9deadc0a29130c7513430a52c4cf744c1b195")]
 [assembly: System.Reflection.AssemblyProductAttribute("BasarMapApp.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BasarMapApp.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

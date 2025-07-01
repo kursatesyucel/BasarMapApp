@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "8ZvSZVgPiV0=",
+  "dgSpecHash": "EThentOXKFU=",
   "success": true,
-  "projectFilePath": "C:\\Projects\\BasarMapApp\\backend\\BasarMapApp.Api\\BasarMapApp.Api.csproj",
+  "projectFilePath": "C:\\Projects\\BasarMapApp\\backend\\BasarMapApp.api\\BasarMapApp.Api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\eyuce\\.nuget\\packages\\automapper\\12.0.1\\automapper.12.0.1.nupkg.sha512",
     "C:\\Users\\eyuce\\.nuget\\packages\\automapper.extensions.microsoft.dependencyinjection\\12.0.1\\automapper.extensions.microsoft.dependencyinjection.12.0.1.nupkg.sha512",
