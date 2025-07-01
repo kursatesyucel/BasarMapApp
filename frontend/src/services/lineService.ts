@@ -1,0 +1,49 @@
+import { api } from './api';
+import { Line, CreateLineDto, UpdateLineDto, ApiResponse } from '../types';
+
+export const lineService = {
+  async getAll(): Promise<Line[]> {
+    const response = await api.get<ApiResponse<Line[]>>('/lines');
+    return response.data.data || [];
+  },
+
+  async getById(id: number): Promise<Line | null> {
+    try {
+      const response = await api.get<ApiResponse<Line>>(`/lines/${id}`);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching line:', error);
+      return null;
+    }
+  },
+
+  async create(line: CreateLineDto): Promise<Line | null> {
+    try {
+      const response = await api.post<ApiResponse<Line>>('/lines', line);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating line:', error);
+      return null;
+    }
+  },
+
+  async update(id: number, line: UpdateLineDto): Promise<Line | null> {
+    try {
+      const response = await api.put<ApiResponse<Line>>(`/lines/${id}`, line);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error updating line:', error);
+      return null;
+    }
+  },
+
+  async delete(id: number): Promise<boolean> {
+    try {
+      const response = await api.delete<ApiResponse<boolean>>(`/lines/${id}`);
+      return response.data.success;
+    } catch (error) {
+      console.error('Error deleting line:', error);
+      return false;
+    }
+  }
+}; 
