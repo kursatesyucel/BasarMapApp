@@ -19,10 +19,13 @@ export const lineService = {
 
   async create(line: CreateLineDto): Promise<Line | null> {
     try {
+      console.log('LineService.create called with:', line);
       const response = await api.post<ApiResponse<Line>>('/lines', line);
+      console.log('LineService.create response:', response.data);
       return response.data.data;
     } catch (error) {
       console.error('Error creating line:', error);
+      console.error('Error details:', error.response?.data);
       return null;
     }
   },

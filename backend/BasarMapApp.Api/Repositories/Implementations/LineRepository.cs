@@ -48,6 +48,7 @@ namespace BasarMapApp.Api.Repositories.Implementations
                 return null;
 
             existingLine.Name = line.Name;
+            existingLine.Description = line.Description;
             existingLine.Geometry = line.Geometry;
             existingLine.UpdatedAt = DateTime.UtcNow;
 

@@ -8,6 +8,9 @@ namespace BasarMapApp.Api.DTOs.Line
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
 
+        [StringLength(500)]
+        public string? Description { get; set; }
+
         [Required]
         [MinLength(2, ErrorMessage = "Line must have at least 2 points")]
         public List<List<double>> Coordinates { get; set; } = new List<List<double>>();

@@ -24,6 +24,13 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
     selectFeature({ type, data });
   };
 
+  const handleEdit = () => {
+    if (selectedFeature) {
+      // For now, just show an alert. This could be expanded to open an edit modal
+      alert(`Edit functionality for ${selectedFeature.type} coming soon!`);
+    }
+  };
+
   const handleDelete = async () => {
     if (selectedFeature && confirm(`Are you sure you want to delete this ${selectedFeature.type}?`)) {
       const success = await deleteSelectedFeature();
@@ -39,6 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
     additionalInfo: string
   ) => {
     const isSelected = selectedFeature?.data.id === feature.id && selectedFeature?.type === type;
+    const hasDescription = 'description' in feature && feature.description;
     
     return (
       <div
@@ -47,6 +55,16 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
         onClick={() => handleFeatureClick(type, feature)}
       >
         <div className="feature-name">{feature.name}</div>
+        {hasDescription && (
+          <div className="feature-description" style={{ 
+            fontSize: '0.8rem', 
+            color: '#999', 
+            marginTop: '2px',
+            fontStyle: 'italic'
+          }}>
+            {(feature as any).description}
+          </div>
+        )}
         <div className="feature-details">{additionalInfo}</div>
       </div>
     );
@@ -102,6 +120,12 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
               <span className="detail-label">Points:</span>
               <span className="detail-value">{(data as Line).coordinates.length}</span>
             </div>
+            {(data as Line).description && (
+              <div className="detail-row">
+                <span className="detail-label">Description:</span>
+                <span className="detail-value">{(data as Line).description}</span>
+              </div>
+            )}
             <div className="detail-row">
               <span className="detail-label">Coordinates:</span>
               <span className="detail-value">
@@ -125,6 +149,12 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
               <span className="detail-label">Vertices:</span>
               <span className="detail-value">{(data as Polygon).coordinates[0]?.length || 0}</span>
             </div>
+            {(data as Polygon).description && (
+              <div className="detail-row">
+                <span className="detail-label">Description:</span>
+                <span className="detail-value">{(data as Polygon).description}</span>
+              </div>
+            )}
             <div className="detail-row">
               <span className="detail-label">Coordinates:</span>
               <span className="detail-value">
@@ -152,9 +182,31 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
           </div>
         )}
 
-        <button className="delete-button" onClick={handleDelete}>
-          Delete {type}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+          <button 
+            className="edit-button" 
+            onClick={() => handleEdit()}
+            style={{
+              background: '#28a745',
+              color: 'white',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              flex: 1
+            }}
+          >
+            Edit {type}
+          </button>
+          <button 
+            className="delete-button" 
+            onClick={handleDelete}
+            style={{ flex: 1 }}
+          >
+            Delete {type}
+          </button>
+        </div>
       </div>
     );
   };

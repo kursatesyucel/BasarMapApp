@@ -11,6 +11,7 @@ export interface Point {
 export interface Line {
   id: number;
   name: string;
+  description?: string;
   coordinates: number[][];
   createdAt: string;
   updatedAt?: string;
@@ -19,6 +20,7 @@ export interface Line {
 export interface Polygon {
   id: number;
   name: string;
+  description?: string;
   coordinates: number[][][];
   createdAt: string;
   updatedAt?: string;
@@ -33,11 +35,13 @@ export interface CreatePointDto {
 
 export interface CreateLineDto {
   name: string;
+  description?: string;
   coordinates: number[][];
 }
 
 export interface CreatePolygonDto {
   name: string;
+  description?: string;
   coordinates: number[][][];
 }
 
@@ -50,11 +54,13 @@ export interface UpdatePointDto {
 
 export interface UpdateLineDto {
   name: string;
+  description?: string;
   coordinates: number[][];
 }
 
 export interface UpdatePolygonDto {
   name: string;
+  description?: string;
   coordinates: number[][][];
 }
 

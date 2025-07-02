@@ -48,6 +48,7 @@ namespace BasarMapApp.Api.Repositories.Implementations
                 return null;
 
             existingPolygon.Name = polygon.Name;
+            existingPolygon.Description = polygon.Description;
             existingPolygon.Geometry = polygon.Geometry;
             existingPolygon.UpdatedAt = DateTime.UtcNow;
 
