@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { UseMapFeaturesReturn } from '../hooks/useMapFeatures';
-import { Point, Line, Polygon } from '../types';
+import { Point, Line, Polygon, UpdatePointDto, UpdateLineDto, UpdatePolygonDto } from '../types';
 import { calculateLineLength, calculatePolygonArea, formatDistance, formatArea } from '../utils/geometryUtils';
+import { pointService } from '../services/pointService';
+import { lineService } from '../services/lineService';
+import { polygonService } from '../services/polygonService';
+import EditFeatureModal from './EditFeatureModal';
 
 interface SidebarProps {
   mapFeatures: UseMapFeaturesReturn;
@@ -20,15 +24,60 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
     refreshAll
   } = mapFeatures;
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingFeature, setEditingFeature] = useState<{
+    feature: Point | Line | Polygon;
+    type: 'point' | 'line' | 'polygon';
+  } | null>(null);
+
   const handleFeatureClick = (type: 'point' | 'line' | 'polygon', data: Point | Line | Polygon) => {
     selectFeature({ type, data });
   };
 
   const handleEdit = () => {
     if (selectedFeature) {
-      // For now, just show an alert. This could be expanded to open an edit modal
-      alert(`Edit functionality for ${selectedFeature.type} coming soon!`);
+      setEditingFeature({
+        feature: selectedFeature.data,
+        type: selectedFeature.type
+      });
+      setShowEditModal(true);
     }
+  };
+
+  const handleEditSubmit = async (data: UpdatePointDto | UpdateLineDto | UpdatePolygonDto): Promise<boolean> => {
+    if (!editingFeature) return false;
+
+    try {
+      let success = false;
+      
+      if (editingFeature.type === 'point') {
+        const result = await pointService.update(editingFeature.feature.id, data as UpdatePointDto);
+        success = !!result;
+      } else if (editingFeature.type === 'line') {
+        const result = await lineService.update(editingFeature.feature.id, data as UpdateLineDto);
+        success = !!result;
+      } else if (editingFeature.type === 'polygon') {
+        const result = await polygonService.update(editingFeature.feature.id, data as UpdatePolygonDto);
+        success = !!result;
+      }
+
+      if (success) {
+        // Refresh data
+        refreshAll();
+        // Clear selection to force re-selection with updated data
+        selectFeature(null);
+      }
+
+      return success;
+    } catch (error) {
+      console.error('Error updating feature:', error);
+      return false;
+    }
+  };
+
+  const handleEditCancel = () => {
+    setShowEditModal(false);
+    setEditingFeature(null);
   };
 
   const handleDelete = async () => {
@@ -270,6 +319,15 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
 
         {renderSelectedFeatureDetails()}
       </div>
+
+      <EditFeatureModal
+        isOpen={showEditModal}
+        feature={editingFeature?.feature || null}
+        featureType={editingFeature?.type || 'point'}
+        allFeatures={{ points, lines, polygons }}
+        onSubmit={handleEditSubmit}
+        onCancel={handleEditCancel}
+      />
     </div>
   );
 };
