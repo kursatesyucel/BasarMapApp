@@ -101,55 +101,201 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
 
     // Handle edit events
     map.on(L.Draw.Event.EDITED, async (event: any) => {
+      console.log('🎯 EDIT EVENT TRIGGERED!', event);
       const layers = event.layers;
+      console.log('📦 Layers to update:', layers);
+      
+      let updatePromises: Promise<any>[] = [];
+      
       layers.eachLayer(async (layer: any) => {
+        console.log('🔍 Processing layer:', layer);
+        console.log('Layer properties:', {
+          _pointId: layer._pointId,
+          _lineId: layer._lineId,
+          _polygonId: layer._polygonId,
+          _featureType: layer._featureType
+        });
+
         try {
-          if (layer._pointId) {
-            const latlng = layer.getLatLng();
-            const point = mapFeatures.points.find(p => p.id === layer._pointId);
-            if (point) {
-              await pointService.update(layer._pointId, {
+                      if (layer._pointId) {
+              console.log('📍 Updating POINT with ID:', layer._pointId, 'Type:', typeof layer._pointId);
+              const latlng = layer.getLatLng();
+              console.log('📍 New coordinates:', { lat: latlng.lat, lng: latlng.lng });
+              
+                            console.log('📍 Available points in mapFeatures:', mapFeatures.points.map(p => ({ id: p.id, name: p.name, idType: typeof p.id })));
+              
+              // Try to find in local state first
+              let point = mapFeatures.points.find(p => p.id === layer._pointId || p.id == layer._pointId || String(p.id) === String(layer._pointId));
+              
+              console.log('📍 Found point data in local state:', point);
+              
+                              // If not found in local state, fetch from API
+                if (!point) {
+                  console.log('📍 Point not in local state, fetching from API...');
+                  try {
+                    const fetchedPoint = await pointService.getById(layer._pointId);
+                    point = fetchedPoint || undefined;
+                    console.log('📍 Point fetched from API:', point);
+                  } catch (error) {
+                    console.error('📍 Failed to fetch point from API:', error);
+                  }
+                }
+              
+              if (point) {
+              const updateData = {
                 name: point.name,
                 description: point.description,
                 latitude: latlng.lat,
                 longitude: latlng.lng
-              });
-              mapFeatures.refreshPoints();
+              };
+              console.log('📍 Sending update data:', updateData);
+              
+              const updatePromise = pointService.update(layer._pointId, updateData)
+                .then(result => {
+                  console.log('✅ Point update successful:', result);
+                  return result;
+                })
+                .catch(error => {
+                  console.error('❌ Point update failed:', error);
+                  throw error;
+                });
+              
+              updatePromises.push(updatePromise);
+            } else {
+              console.warn('⚠️ Point not found in mapFeatures.points');
             }
-          } else if (layer._lineId) {
-            const coordinates = layer.getLatLngs().map((latlng: L.LatLng) => [latlng.lng, latlng.lat]);
-            const line = mapFeatures.lines.find(l => l.id === layer._lineId);
-            if (line) {
-              await lineService.update(layer._lineId, {
+                      } else if (layer._lineId) {
+              console.log('📏 Updating LINE with ID:', layer._lineId, 'Type:', typeof layer._lineId);
+              const coordinates = layer.getLatLngs().map((latlng: L.LatLng) => [latlng.lng, latlng.lat]);
+              console.log('📏 New coordinates:', coordinates);
+              
+                            console.log('📏 Available lines in mapFeatures:', mapFeatures.lines.map(l => ({ id: l.id, name: l.name, idType: typeof l.id })));
+              
+              // Try to find in local state first
+              let line = mapFeatures.lines.find(l => l.id === layer._lineId || l.id == layer._lineId || String(l.id) === String(layer._lineId));
+              
+              console.log('📏 Found line data in local state:', line);
+              
+              // If not found in local state, fetch from API
+              if (!line) {
+                console.log('📏 Line not in local state, fetching from API...');
+                try {
+                  const fetchedLine = await lineService.getById(layer._lineId);
+                  line = fetchedLine || undefined;
+                  console.log('📏 Line fetched from API:', line);
+                } catch (error) {
+                  console.error('📏 Failed to fetch line from API:', error);
+                }
+              }
+              
+              if (line) {
+              const updateData = {
                 name: line.name,
                 description: line.description,
                 coordinates
-              });
-              mapFeatures.refreshLines();
+              };
+              console.log('📏 Sending update data:', updateData);
+              
+              const updatePromise = lineService.update(layer._lineId, updateData)
+                .then(result => {
+                  console.log('✅ Line update successful:', result);
+                  return result;
+                })
+                .catch(error => {
+                  console.error('❌ Line update failed:', error);
+                  throw error;
+                });
+              
+              updatePromises.push(updatePromise);
+            } else {
+              console.warn('⚠️ Line not found in mapFeatures.lines');
             }
-          } else if (layer._polygonId) {
-            const outerRing = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lng, latlng.lat]);
-            // Ensure the polygon is closed
-            if (outerRing.length > 0 && 
-                (outerRing[0][0] !== outerRing[outerRing.length - 1][0] || 
-                 outerRing[0][1] !== outerRing[outerRing.length - 1][1])) {
-              outerRing.push([outerRing[0][0], outerRing[0][1]]);
-            }
-            const coordinates = [outerRing];
-            const polygon = mapFeatures.polygons.find(p => p.id === layer._polygonId);
-            if (polygon) {
-              await polygonService.update(layer._polygonId, {
+                      } else if (layer._polygonId) {
+              console.log('🔷 Updating POLYGON with ID:', layer._polygonId, 'Type:', typeof layer._polygonId);
+              const outerRing = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lng, latlng.lat]);
+              console.log('🔷 Raw outer ring:', outerRing);
+              
+              // Ensure the polygon is closed
+              if (outerRing.length > 0 && 
+                  (outerRing[0][0] !== outerRing[outerRing.length - 1][0] || 
+                   outerRing[0][1] !== outerRing[outerRing.length - 1][1])) {
+                outerRing.push([outerRing[0][0], outerRing[0][1]]);
+                console.log('🔷 Polygon closed, final coordinates:', outerRing);
+              }
+              
+              const coordinates = [outerRing];
+              
+                            console.log('🔷 Available polygons in mapFeatures:', mapFeatures.polygons.map(p => ({ id: p.id, name: p.name, idType: typeof p.id })));
+              
+              // Try to find in local state first
+              let polygon = mapFeatures.polygons.find(p => p.id === layer._polygonId || p.id == layer._polygonId || String(p.id) === String(layer._polygonId));
+              
+              console.log('🔷 Found polygon data in local state:', polygon);
+              
+              // If not found in local state, fetch from API
+              if (!polygon) {
+                console.log('🔷 Polygon not in local state, fetching from API...');
+                try {
+                  const fetchedPolygon = await polygonService.getById(layer._polygonId);
+                  polygon = fetchedPolygon || undefined;
+                  console.log('🔷 Polygon fetched from API:', polygon);
+                } catch (error) {
+                  console.error('🔷 Failed to fetch polygon from API:', error);
+                }
+              }
+              
+              if (polygon) {
+              const updateData = {
                 name: polygon.name,
                 description: polygon.description,
                 coordinates
-              });
-              mapFeatures.refreshPolygons();
+              };
+              console.log('🔷 Sending update data:', updateData);
+              
+              const updatePromise = polygonService.update(layer._polygonId, updateData)
+                .then(result => {
+                  console.log('✅ Polygon update successful:', result);
+                  return result;
+                })
+                .catch(error => {
+                  console.error('❌ Polygon update failed:', error);
+                  throw error;
+                });
+              
+              updatePromises.push(updatePromise);
+            } else {
+              console.warn('⚠️ Polygon not found in mapFeatures.polygons');
             }
+          } else {
+            console.warn('⚠️ Layer has no recognized ID:', {
+              _pointId: layer._pointId,
+              _lineId: layer._lineId,
+              _polygonId: layer._polygonId
+            });
           }
         } catch (error) {
-          console.error('Error updating feature:', error);
+          console.error('💥 Error processing layer:', error);
         }
       });
+
+      // Wait for all updates to complete, then refresh
+      if (updatePromises.length > 0) {
+        try {
+          console.log('⏳ Waiting for all updates to complete...');
+          await Promise.all(updatePromises);
+          console.log('🔄 All updates completed, refreshing data...');
+          
+          // Refresh all features to get updated data
+          mapFeatures.refreshAll();
+          console.log('✅ Data refresh completed!');
+        } catch (error) {
+          console.error('💥 Error during batch update:', error);
+          // Still refresh to ensure UI consistency
+          mapFeatures.refreshAll();
+        }
+      } else {
+        console.warn('⚠️ No valid layers found for update');
+      }
     });
 
     // Handle delete events
@@ -267,6 +413,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
       const marker = L.marker([point.latitude, point.longitude]);
       (marker as any)._pointId = point.id; // Store ID for editing
       (marker as any)._featureType = 'point';
+      console.log('📍 Creating point marker:', { id: point.id, name: point.name, _pointId: (marker as any)._pointId });
       
       const popupContent = `
         <div class="popup-content">
@@ -296,6 +443,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
       );
       (polyline as any)._lineId = line.id;
       (polyline as any)._featureType = 'line';
+      console.log('📏 Creating line polyline:', { id: line.id, name: line.name, _lineId: (polyline as any)._lineId });
       
       editableLayersRef.current!.addLayer(polyline);
     });
@@ -310,6 +458,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
       );
       (leafletPolygon as any)._polygonId = polygon.id;
       (leafletPolygon as any)._featureType = 'polygon';
+      console.log('🔷 Creating polygon:', { id: polygon.id, name: polygon.name, _polygonId: (leafletPolygon as any)._polygonId });
       
       editableLayersRef.current!.addLayer(leafletPolygon);
     });

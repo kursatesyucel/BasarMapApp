@@ -29,10 +29,13 @@ export const polygonService = {
 
   async update(id: number, polygon: UpdatePolygonDto): Promise<Polygon | null> {
     try {
+      console.log('🔷 PolygonService.update called:', { id, polygon });
       const response = await api.put<ApiResponse<Polygon>>(`/polygons/${id}`, polygon);
+      console.log('🔷 PolygonService.update response:', response.data);
       return response.data.data;
     } catch (error) {
-      console.error('Error updating polygon:', error);
+      console.error('🔷 PolygonService.update error:', error);
+      console.error('🔷 Error response:', error.response?.data);
       return null;
     }
   },
