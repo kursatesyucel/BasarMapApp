@@ -86,6 +86,41 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
+        /// Create a new polygon with intersection handling (removes overlaps with existing polygons)
+        /// </summary>
+        /// <param name="createPolygonDto">Polygon creation data</param>
+        /// <returns>Created polygon with intersections removed</returns>
+        [HttpPost("create-with-intersection-handling")]
+        public async Task<ActionResult<ApiResponse<PolygonDto>>> CreatePolygonWithIntersectionHandling([FromBody] CreatePolygonDto createPolygonDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                
+                var validationResult = ApiResponse<PolygonDto>.FailureResult(
+                    "Validation failed", 
+                    errors
+                );
+                
+                return BadRequest(validationResult);
+            }
+
+            var result = await _polygonService.CreateWithIntersectionHandlingAsync(createPolygonDto);
+            
+            if (result.Success)
+                return CreatedAtAction(
+                    nameof(GetPolygon), 
+                    new { id = result.Data!.Id }, 
+                    result
+                );
+            
+            return BadRequest(result);
+        }
+
+        /// <summary>
         /// Update an existing polygon
         /// </summary>
         /// <param name="id">Polygon ID</param>

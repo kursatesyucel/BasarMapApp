@@ -1,4 +1,5 @@
 using BasarMapApp.Api.Models;
+using NetTopologySuite.Geometries;
 
 namespace BasarMapApp.Api.Repositories.Interfaces
 {
@@ -10,5 +11,6 @@ namespace BasarMapApp.Api.Repositories.Interfaces
         Task<MapPoint?> UpdateAsync(int id, MapPoint point);
         Task<bool> DeleteAsync(int id);
         Task<bool> ExistsAsync(int id);
+        Task<IEnumerable<MapPoint>> GetPointsWithinPolygonAsync(Polygon polygon);
     }
 }

@@ -138,5 +138,36 @@ namespace BasarMapApp.Api.Controllers
             
             return BadRequest(result);
         }
+
+        /// <summary>
+        /// Get points within a polygon
+        /// </summary>
+        /// <param name="polygonCoordinates">Polygon coordinates in GeoJSON format</param>
+        /// <returns>Points within the polygon</returns>
+        [HttpPost("within-polygon")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<PointDto>>>> GetPointsWithinPolygon([FromBody] List<List<List<double>>> polygonCoordinates)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                
+                var validationResult = ApiResponse<IEnumerable<PointDto>>.FailureResult(
+                    "Validation failed", 
+                    errors
+                );
+                
+                return BadRequest(validationResult);
+            }
+
+            var result = await _pointService.GetPointsWithinPolygonAsync(polygonCoordinates);
+            
+            if (result.Success)
+                return Ok(result);
+            
+            return BadRequest(result);
+        }
     }
 } 

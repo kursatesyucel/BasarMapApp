@@ -10,5 +10,6 @@ namespace BasarMapApp.Api.Services.Interfaces
         Task<ApiResponse<PointDto>> CreateAsync(CreatePointDto createPointDto);
         Task<ApiResponse<PointDto>> UpdateAsync(int id, UpdatePointDto updatePointDto);
         Task<ApiResponse<bool>> DeleteAsync(int id);
+        Task<ApiResponse<IEnumerable<PointDto>>> GetPointsWithinPolygonAsync(List<List<List<double>>> polygonCoordinates);
     }
 } 

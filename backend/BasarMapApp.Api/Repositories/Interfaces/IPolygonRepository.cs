@@ -1,4 +1,5 @@
 using BasarMapApp.Api.Models;
+using NetTopologySuite.Geometries;
 
 namespace BasarMapApp.Api.Repositories.Interfaces
 {
@@ -10,5 +11,7 @@ namespace BasarMapApp.Api.Repositories.Interfaces
         Task<MapPolygon?> UpdateAsync(int id, MapPolygon polygon);
         Task<bool> DeleteAsync(int id);
         Task<bool> ExistsAsync(int id);
+        Task<IEnumerable<MapPolygon>> GetIntersectingPolygonsAsync(Polygon polygon);
+        Task<Polygon?> GetDifferenceFromExistingPolygonsAsync(Polygon newPolygon);
     }
 } 

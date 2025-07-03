@@ -27,6 +27,16 @@ export const polygonService = {
     }
   },
 
+  async createWithIntersectionHandling(polygon: CreatePolygonDto): Promise<Polygon | null> {
+    try {
+      const response = await api.post<ApiResponse<Polygon>>('/polygons/create-with-intersection-handling', polygon);
+      return response.data.data;
+    } catch (error) {
+      console.error('Error creating polygon with intersection handling:', error);
+      return null;
+    }
+  },
+
   async update(id: number, polygon: UpdatePolygonDto): Promise<Polygon | null> {
     try {
       const response = await api.put<ApiResponse<Polygon>>(`/polygons/${id}`, polygon);

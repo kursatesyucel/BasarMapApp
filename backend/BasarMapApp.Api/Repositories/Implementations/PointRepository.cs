@@ -71,5 +71,13 @@ namespace BasarMapApp.Api.Repositories.Implementations
         {
             return await _context.Points.AnyAsync(p => p.Id == id);
         }
+
+        public async Task<IEnumerable<MapPoint>> GetPointsWithinPolygonAsync(Polygon polygon)
+        {
+            return await _context.Points
+                .Where(p => polygon.Contains(p.Geometry))
+                .OrderBy(p => p.CreatedAt)
+                .ToListAsync();
+        }
     }
 }

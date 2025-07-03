@@ -7,7 +7,8 @@ import { lineService } from '../services/lineService';
 import { polygonService } from '../services/polygonService';
 import { calculateLineLength, calculatePolygonArea, formatDistance, formatArea } from '../utils/geometryUtils';
 import FeatureForm from './FeatureForm';
-import { CreatePointDto, CreateLineDto, CreatePolygonDto } from '../types';
+import PointsWithinPolygonModal from './PointsWithinPolygonModal';
+import { CreatePointDto, CreateLineDto, CreatePolygonDto, Point } from '../types';
 
 // Fix for default markers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -35,6 +36,16 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'point' | 'line' | 'polygon'>('point');
   const [pendingGeometry, setPendingGeometry] = useState<any>(null);
+
+  // Points within polygon modal state
+  const [showPointsModal, setShowPointsModal] = useState(false);
+  const [pointsWithinPolygon, setPointsWithinPolygon] = useState<Point[]>([]);
+  const [currentPolygonName, setCurrentPolygonName] = useState<string>('');
+
+  // Edit confirmation modal state
+  const [showEditConfirmationModal, setShowEditConfirmationModal] = useState(false);
+  const [pendingEditData, setPendingEditData] = useState<any>(null);
+  const [pointsAffectedByEdit, setPointsAffectedByEdit] = useState<Point[]>([]);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -99,15 +110,14 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
       setShowForm(true);
     });
 
-    // Handle edit events
+    // Handle edit events with spatial query for polygons
     map.on(L.Draw.Event.EDITED, async (event: any) => {
       const layers = event.layers;
       let updatePromises: Promise<any>[] = [];
       
       layers.eachLayer(async (layer: any) => {
-
         try {
-                                if (layer._pointId) {
+          if (layer._pointId) {
             const latlng = layer.getLatLng();
             
             // Try to find in local state first
@@ -123,7 +133,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
               }
             }
               
-              if (point) {
+            if (point) {
               const updateData = {
                 name: point.name,
                 description: point.description,
@@ -134,7 +144,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
               const updatePromise = pointService.update(layer._pointId, updateData);
               updatePromises.push(updatePromise);
             }
-                                } else if (layer._lineId) {
+          } else if (layer._lineId) {
             const coordinates = layer.getLatLngs().map((latlng: L.LatLng) => [latlng.lng, latlng.lat]);
             
             // Try to find in local state first
@@ -150,7 +160,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
               }
             }
               
-              if (line) {
+            if (line) {
               const updateData = {
                 name: line.name,
                 description: line.description,
@@ -160,7 +170,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
               const updatePromise = lineService.update(layer._lineId, updateData);
               updatePromises.push(updatePromise);
             }
-                                } else if (layer._polygonId) {
+          } else if (layer._polygonId) {
             const outerRing = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lng, latlng.lat]);
             
             // Ensure the polygon is closed
@@ -185,7 +195,26 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
               }
             }
               
-              if (polygon) {
+            if (polygon) {
+              // Check for points within the edited polygon BEFORE saving
+              try {
+                const pointsWithin = await pointService.getPointsWithinPolygon(coordinates);
+                if (pointsWithin.length > 0) {
+                  // Show confirmation modal with affected points
+                  setPendingEditData({
+                    polygonId: layer._polygonId,
+                    polygon: polygon,
+                    coordinates: coordinates
+                  });
+                  setPointsAffectedByEdit(pointsWithin);
+                  setShowEditConfirmationModal(true);
+                  return; // Don't save yet, wait for user confirmation
+                }
+              } catch (error) {
+                console.error('Error checking points within edited polygon:', error);
+              }
+              
+              // No points affected, proceed with normal update
               const updateData = {
                 name: polygon.name,
                 description: polygon.description,
@@ -273,10 +302,11 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
         }
       } else if (layerType === 'polyline') {
         const coordinates = layer.getLatLngs().map((latlng: L.LatLng) => [latlng.lng, latlng.lat]);
-        console.log('Creating line with data:', { name: data.name, description: data.description, coordinates });
+        const lineData = data as CreateLineDto;
+        console.log('Creating line with data:', { ...lineData, coordinates });
         const line = await lineService.create({
-          name: data.name,
-          description: data.description,
+          name: lineData.name,
+          description: lineData.description,
           coordinates
         });
         console.log('Line creation result:', line);
@@ -285,7 +315,8 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
         }
       } else if (layerType === 'polygon') {
         const outerRing = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lng, latlng.lat]);
-        // Ensure the polygon is closed (first point = last point)
+        
+        // Ensure the polygon is closed
         if (outerRing.length > 0 && 
             (outerRing[0][0] !== outerRing[outerRing.length - 1][0] || 
              outerRing[0][1] !== outerRing[outerRing.length - 1][1])) {
@@ -294,7 +325,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
         const coordinates = [outerRing];
         const polygonData = data as CreatePolygonDto;
         console.log('Creating polygon with data:', { ...polygonData, coordinates });
-        const polygon = await polygonService.create({
+        const polygon = await polygonService.createWithIntersectionHandling({
           name: polygonData.name,
           description: polygonData.description,
           coordinates
@@ -302,6 +333,18 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
         console.log('Polygon creation result:', polygon);
         if (polygon) {
           mapFeatures.refreshPolygons();
+          
+          // After polygon creation, check for points within and show modal
+          try {
+            const pointsWithin = await pointService.getPointsWithinPolygon(coordinates);
+            if (pointsWithin.length > 0) {
+              setPointsWithinPolygon(pointsWithin);
+              setCurrentPolygonName(polygonData.name);
+              setShowPointsModal(true);
+            }
+          } catch (error) {
+            console.error('Error checking points within polygon:', error);
+          }
         }
       }
       
@@ -315,6 +358,40 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
   const handleFormCancel = () => {
     setShowForm(false);
     setPendingGeometry(null);
+  };
+
+  const handlePointsModalClose = () => {
+    setShowPointsModal(false);
+    setPointsWithinPolygon([]);
+    setCurrentPolygonName('');
+  };
+
+  const handleEditConfirmation = async (proceed: boolean) => {
+    if (!pendingEditData) return;
+    
+    if (proceed) {
+      // User confirmed, proceed with the edit
+      try {
+        const updateData = {
+          name: pendingEditData.polygon.name,
+          description: pendingEditData.polygon.description,
+          coordinates: pendingEditData.coordinates
+        };
+        
+        await polygonService.update(pendingEditData.polygonId, updateData);
+        mapFeatures.refreshPolygons();
+      } catch (error) {
+        console.error('Error updating polygon:', error);
+      }
+    } else {
+      // User cancelled, refresh to revert visual changes
+      mapFeatures.refreshPolygons();
+    }
+    
+    // Close modal and clear state
+    setShowEditConfirmationModal(false);
+    setPendingEditData(null);
+    setPointsAffectedByEdit([]);
   };
 
   // Update points layer
@@ -482,6 +559,21 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
         onSubmit={handleFormSubmit}
         onCancel={handleFormCancel}
         title={`Create ${formType.charAt(0).toUpperCase() + formType.slice(1)}`}
+      />
+      <PointsWithinPolygonModal
+        isOpen={showPointsModal}
+        points={pointsWithinPolygon}
+        onClose={handlePointsModalClose}
+        polygonName={currentPolygonName}
+      />
+      <PointsWithinPolygonModal
+        isOpen={showEditConfirmationModal}
+        points={pointsAffectedByEdit}
+        onClose={() => handleEditConfirmation(false)}
+        polygonName={`Edited ${pendingEditData?.polygon?.name || 'Polygon'}`}
+        showEditConfirmation={true}
+        onConfirmEdit={() => handleEditConfirmation(true)}
+        onCancelEdit={() => handleEditConfirmation(false)}
       />
     </>
   );

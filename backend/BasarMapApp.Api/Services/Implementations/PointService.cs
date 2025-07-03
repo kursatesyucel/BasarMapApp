@@ -169,5 +169,48 @@ namespace BasarMapApp.Api.Services.Implementations
                 );
             }
         }
+
+        public async Task<ApiResponse<IEnumerable<PointDto>>> GetPointsWithinPolygonAsync(List<List<List<double>>> polygonCoordinates)
+        {
+            try
+            {
+                if (polygonCoordinates == null || polygonCoordinates.Count == 0)
+                {
+                    return ApiResponse<IEnumerable<PointDto>>.FailureResult(
+                        "Invalid polygon coordinates",
+                        "Polygon coordinates cannot be empty"
+                    );
+                }
+
+                // Convert coordinates to PostGIS Polygon
+                var outerRing = polygonCoordinates[0];
+                var shell = _geometryFactory.CreateLinearRing(
+                    outerRing.Select(coord => new Coordinate(coord[0], coord[1])).ToArray()
+                );
+
+                var holes = polygonCoordinates.Skip(1).Select(ring =>
+                    _geometryFactory.CreateLinearRing(
+                        ring.Select(coord => new Coordinate(coord[0], coord[1])).ToArray()
+                    )).ToArray();
+
+                var polygon = _geometryFactory.CreatePolygon(shell, holes);
+
+                // Query points within polygon
+                var points = await _pointRepository.GetPointsWithinPolygonAsync(polygon);
+                var pointDtos = _mapper.Map<IEnumerable<PointDto>>(points);
+
+                return ApiResponse<IEnumerable<PointDto>>.SuccessResult(
+                    pointDtos,
+                    $"Found {pointDtos.Count()} points within polygon"
+                );
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<PointDto>>.FailureResult(
+                    "An error occurred while querying points within polygon",
+                    ex.Message
+                );
+            }
+        }
     }
 } 

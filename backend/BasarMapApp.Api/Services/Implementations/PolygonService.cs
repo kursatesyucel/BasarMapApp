@@ -94,6 +94,54 @@ namespace BasarMapApp.Api.Services.Implementations
             }
         }
 
+        public async Task<ApiResponse<PolygonDto>> CreateWithIntersectionHandlingAsync(CreatePolygonDto createPolygonDto)
+        {
+            try
+            {
+                // Convert DTO to entity
+                var polygonEntity = _mapper.Map<MapPolygon>(createPolygonDto);
+                var newPolygon = polygonEntity.Geometry;
+
+                // Check for intersections and calculate difference
+                var resultPolygon = await _polygonRepository.GetDifferenceFromExistingPolygonsAsync(newPolygon);
+
+                if (resultPolygon == null)
+                {
+                    return ApiResponse<PolygonDto>.FailureResult(
+                        "Polygon creation failed",
+                        "The new polygon is completely contained within existing polygons or resulted in an empty geometry."
+                    );
+                }
+
+                // Create new entity with the difference geometry
+                var polygonToSave = new MapPolygon
+                {
+                    Name = createPolygonDto.Name,
+                    Description = createPolygonDto.Description,
+                    Geometry = resultPolygon
+                };
+
+                var createdPolygon = await _polygonRepository.CreateAsync(polygonToSave);
+                var polygonDto = _mapper.Map<PolygonDto>(createdPolygon);
+                
+                // Check if the result is different from the original request
+                var originalArea = newPolygon.Area;
+                var resultArea = resultPolygon.Area;
+                var message = originalArea > resultArea 
+                    ? $"Polygon created successfully. Note: {((originalArea - resultArea) / originalArea * 100):F1}% of the original area was removed due to intersection with existing polygons."
+                    : "Polygon created successfully";
+
+                return ApiResponse<PolygonDto>.SuccessResult(polygonDto, message);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<PolygonDto>.FailureResult(
+                    "An error occurred while creating the polygon with intersection handling",
+                    ex.Message
+                );
+            }
+        }
+
         public async Task<ApiResponse<PolygonDto>> UpdateAsync(int id, UpdatePolygonDto updatePolygonDto)
         {
             try

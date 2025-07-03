@@ -1,49 +1,40 @@
 import { api } from './api';
-import { Point, CreatePointDto, UpdatePointDto, ApiResponse } from '../types';
+import { Point, CreatePointDto, UpdatePointDto } from '../types';
 
 export const pointService = {
   async getAll(): Promise<Point[]> {
-    const response = await api.get<ApiResponse<Point[]>>('/points');
-    return response.data.data || [];
+    const response = await api.get('/points');
+    return response.data.data;
   },
 
   async getById(id: number): Promise<Point | null> {
     try {
-      const response = await api.get<ApiResponse<Point>>(`/points/${id}`);
+      const response = await api.get(`/points/${id}`);
       return response.data.data;
-    } catch (error) {
-      console.error('Error fetching point:', error);
-      return null;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null;
+      }
+      throw error;
     }
   },
 
-  async create(point: CreatePointDto): Promise<Point | null> {
-    try {
-      const response = await api.post<ApiResponse<Point>>('/points', point);
-      return response.data.data;
-    } catch (error) {
-      console.error('Error creating point:', error);
-      return null;
-    }
+  async create(point: CreatePointDto): Promise<Point> {
+    const response = await api.post('/points', point);
+    return response.data.data;
   },
 
-  async update(id: number, point: UpdatePointDto): Promise<Point | null> {
-    try {
-      const response = await api.put<ApiResponse<Point>>(`/points/${id}`, point);
-      return response.data.data;
-    } catch (error) {
-      console.error('Error updating point:', error);
-      return null;
-    }
+  async update(id: number, point: UpdatePointDto): Promise<Point> {
+    const response = await api.put(`/points/${id}`, point);
+    return response.data.data;
   },
 
-  async delete(id: number): Promise<boolean> {
-    try {
-      const response = await api.delete<ApiResponse<boolean>>(`/points/${id}`);
-      return response.data.success;
-    } catch (error) {
-      console.error('Error deleting point:', error);
-      return false;
-    }
+  async delete(id: number): Promise<void> {
+    await api.delete(`/points/${id}`);
+  },
+
+  getPointsWithinPolygon: async (polygonCoordinates: number[][][]): Promise<Point[]> => {
+    const response = await api.post('/points/within-polygon', polygonCoordinates);
+    return response.data.data;
   }
 }; 
