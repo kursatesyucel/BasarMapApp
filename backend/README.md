@@ -403,7 +403,7 @@ Bu proje MIT lisansı altında lisanslanmıştır - detaylar için [LICENSE](LIC
 
 Proje Maintainer: [Kürşat E.S. YÜCEL](https://github.com/kursatesyucel) 
 
-Proje Linki: [https://github.com/yourusername/BasarMapApp](https://github.com/yourusername/BasarMapApp)
+Proje Linki:  [https://github.com/kursatesyucel/BasarMapApp](https://github.com/kursatesyucel/BasarMapApp)
 
 ---
 Made with ❤️ by [Kürşat E.S. YÜCEL](https://github.com/kursatesyucel) 

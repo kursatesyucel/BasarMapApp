@@ -295,10 +295,6 @@ docker build -t basarmapapp-frontend .
 
 Bu proje **MIT** lisansı altında lisanslanmıştır - detaylar için [LICENSE](LICENSE) dosyasına bakın.
 
-## 🐛 Bug Report & Feature Request
-
-- **Bug Report**: [Issues](https://github.com/your-username/BasarMapApp/issues) sayfasından bildirin
-- **Feature Request**: [Discussions](https://github.com/your-username/BasarMapApp/discussions) üzerinden önerin
 
 ## 👤 İletişim
 
@@ -306,7 +302,7 @@ Bu proje **MIT** lisansı altında lisanslanmıştır - detaylar için [LICENSE]
 **Email**: eyucel239@gmail.com 
 **LinkedIn**: [Kürşat Yücel](www.linkedin.com/in/kursat-y)
 
-**Proje Linki**: [https://github.com/yourusername/BasarMapApp](https://github.com/yourusername/BasarMapApp)
+**Proje Linki**: [https://github.com/kursatesyucel/BasarMapApp](https://github.com/kursatesyucel/BasarMapApp)
 
 ## 🙏 Teşekkürler
 
