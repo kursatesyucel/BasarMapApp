@@ -29,13 +29,10 @@ export const pointService = {
 
   async update(id: number, point: UpdatePointDto): Promise<Point | null> {
     try {
-      console.log('🔹 PointService.update called:', { id, point });
       const response = await api.put<ApiResponse<Point>>(`/points/${id}`, point);
-      console.log('🔹 PointService.update response:', response.data);
       return response.data.data;
     } catch (error) {
-      console.error('🔹 PointService.update error:', error);
-      console.error('🔹 Error response:', error.response?.data);
+      console.error('Error updating point:', error);
       return null;
     }
   },

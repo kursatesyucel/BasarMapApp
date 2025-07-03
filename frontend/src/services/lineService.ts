@@ -32,13 +32,10 @@ export const lineService = {
 
   async update(id: number, line: UpdateLineDto): Promise<Line | null> {
     try {
-      console.log('📏 LineService.update called:', { id, line });
       const response = await api.put<ApiResponse<Line>>(`/lines/${id}`, line);
-      console.log('📏 LineService.update response:', response.data);
       return response.data.data;
     } catch (error) {
-      console.error('📏 LineService.update error:', error);
-      console.error('📏 Error response:', error.response?.data);
+      console.error('Error updating line:', error);
       return null;
     }
   },
