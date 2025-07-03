@@ -1,0 +1,34 @@
+# Git
+.git
+.gitignore
+README.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE
+.vscode
+.vs
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+
+# Node modules
+node_modules
+npm-debug.log*
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+
+# Environment variables
+.env
+.env.local 
