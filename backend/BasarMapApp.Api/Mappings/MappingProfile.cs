@@ -2,6 +2,7 @@ using AutoMapper;
 using BasarMapApp.Api.DTOs.Point;
 using BasarMapApp.Api.DTOs.Line;
 using BasarMapApp.Api.DTOs.Polygon;
+using BasarMapApp.Api.DTOs.Camera;
 using BasarMapApp.Api.Models;
 using NetTopologySuite.Geometries;
 
@@ -74,6 +75,26 @@ namespace BasarMapApp.Api.Mappings
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.Geometry, opt => opt.MapFrom(src => 
                     CreatePolygonFromCoordinates(geometryFactory, src.Coordinates)));
+
+            // Camera mappings
+            CreateMap<Camera, CameraDto>()
+                .ForMember(dest => dest.Latitude, opt => opt.MapFrom(src => src.Geometry.Y))
+                .ForMember(dest => dest.Longitude, opt => opt.MapFrom(src => src.Geometry.X))
+                .ForMember(dest => dest.VideoUrl, opt => opt.MapFrom(src => $"/videos/cameras/{src.VideoFileName}"));
+
+            CreateMap<CreateCameraDto, Camera>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Geometry, opt => opt.MapFrom(src => 
+                    geometryFactory.CreatePoint(new Coordinate(src.Longitude, src.Latitude))));
+
+            CreateMap<UpdateCameraDto, Camera>()
+                .ForMember(dest => dest.Id, opt => opt.Ignore())
+                .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
+                .ForMember(dest => dest.Geometry, opt => opt.MapFrom(src => 
+                    geometryFactory.CreatePoint(new Coordinate(src.Longitude, src.Latitude))));
         }
 
         private static NetTopologySuite.Geometries.Polygon CreatePolygonFromCoordinates(GeometryFactory factory, List<List<List<double>>> coordinates)

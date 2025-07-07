@@ -26,6 +26,19 @@ export interface Polygon {
   updatedAt?: string;
 }
 
+export interface Camera {
+  id: number;
+  name: string;
+  description?: string;
+  latitude: number;
+  longitude: number;
+  videoFileName: string;
+  videoUrl: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface CreatePointDto {
   name: string;
   description?: string;
@@ -43,6 +56,15 @@ export interface CreatePolygonDto {
   name: string;
   description?: string;
   coordinates: number[][][];
+}
+
+export interface CreateCameraDto {
+  name: string;
+  description?: string;
+  latitude: number;
+  longitude: number;
+  videoFileName: string;
+  isActive?: boolean;
 }
 
 export interface UpdatePointDto {
@@ -64,6 +86,15 @@ export interface UpdatePolygonDto {
   coordinates: number[][][];
 }
 
+export interface UpdateCameraDto {
+  name: string;
+  description?: string;
+  latitude: number;
+  longitude: number;
+  videoFileName: string;
+  isActive?: boolean;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message: string;
@@ -71,9 +102,9 @@ export interface ApiResponse<T> {
   errors?: string[];
 }
 
-export type FeatureType = 'point' | 'line' | 'polygon';
+export type FeatureType = 'point' | 'line' | 'polygon' | 'camera';
 
 export interface SelectedFeature {
   type: FeatureType;
-  data: Point | Line | Polygon;
+  data: Point | Line | Polygon | Camera;
 } 

@@ -5,10 +5,12 @@ import { UseMapFeaturesReturn } from '../hooks/useMapFeatures';
 import { pointService } from '../services/pointService';
 import { lineService } from '../services/lineService';
 import { polygonService } from '../services/polygonService';
+import { cameraService } from '../services/cameraService';
 import { calculateLineLength, calculatePolygonArea, formatDistance, formatArea } from '../utils/geometryUtils';
 import FeatureForm from './FeatureForm';
 import PointsWithinPolygonModal from './PointsWithinPolygonModal';
-import { CreatePointDto, CreateLineDto, CreatePolygonDto, Point } from '../types';
+import CameraPopup from './CameraPopup';
+import { CreatePointDto, CreateLineDto, CreatePolygonDto, Point, Camera } from '../types';
 
 // Fix for default markers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -16,6 +18,27 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// Camera icon for markers
+const cameraIcon = L.divIcon({
+  html: `<div style="
+    background-color: #1976d2;
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    font-size: 16px;
+    color: white;
+  ">📹</div>`,
+  className: 'camera-marker',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16]
 });
 
 interface MapViewProps {
@@ -29,6 +52,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
     points: L.LayerGroup;
     lines: L.LayerGroup;
     polygons: L.LayerGroup;
+    cameras: L.LayerGroup;
   } | null>(null);
   const editableLayersRef = useRef<L.FeatureGroup | null>(null);
 
@@ -47,6 +71,11 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
   const [pendingEditData, setPendingEditData] = useState<any>(null);
   const [pointsAffectedByEdit, setPointsAffectedByEdit] = useState<Point[]>([]);
 
+  // Camera state
+  const [cameras, setCameras] = useState<Camera[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
+  const [showCameraPopup, setShowCameraPopup] = useState(false);
+
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
@@ -62,11 +91,13 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
     const pointsLayer = L.layerGroup().addTo(map);
     const linesLayer = L.layerGroup().addTo(map);
     const polygonsLayer = L.layerGroup().addTo(map);
+    const camerasLayer = L.layerGroup().addTo(map);
 
     layersRef.current = {
       points: pointsLayer,
       lines: linesLayer,
-      polygons: polygonsLayer
+      polygons: polygonsLayer,
+      cameras: camerasLayer
     };
 
     // Create editable feature group
@@ -273,6 +304,26 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
       }
     };
   }, []);
+
+  // Load cameras on mount
+  useEffect(() => {
+    const loadCameras = async () => {
+      try {
+        const cameraData = await cameraService.getActive();
+        setCameras(cameraData);
+      } catch (error) {
+        console.error('Error loading cameras:', error);
+      }
+    };
+
+    loadCameras();
+  }, []);
+
+  // Camera click handler
+  const handleCameraClick = (camera: Camera) => {
+    setSelectedCamera(camera);
+    setShowCameraPopup(true);
+  };
 
   // Form handlers
   const handleFormSubmit = async (data: any) => {
@@ -522,6 +573,35 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
     });
   }, [mapFeatures.polygons, mapFeatures.selectFeature]);
 
+  // Update cameras layer
+  useEffect(() => {
+    if (!layersRef.current) return;
+
+    layersRef.current.cameras.clearLayers();
+
+    cameras.forEach(camera => {
+      const marker = L.marker([camera.latitude, camera.longitude], { icon: cameraIcon });
+      
+      const popupContent = `
+        <div class="popup-content">
+          <h4>${camera.name}</h4>
+          <div class="popup-details">
+            <div>Status: ${camera.isActive ? '🟢 Aktif' : '🔴 Pasif'}</div>
+            <div>Lat: ${camera.latitude.toFixed(6)}</div>
+            <div>Lng: ${camera.longitude.toFixed(6)}</div>
+            ${camera.description ? `<div>Description: ${camera.description}</div>` : ''}
+            <div><small>Tıkla: Video izle</small></div>
+          </div>
+        </div>
+      `;
+      
+      marker.bindPopup(popupContent);
+      marker.on('click', () => handleCameraClick(camera));
+      
+      layersRef.current!.cameras.addLayer(marker);
+    });
+  }, [cameras]);
+
   // Pan to selected feature
   useEffect(() => {
     if (!mapInstanceRef.current || !mapFeatures.selectedFeature) return;
@@ -575,6 +655,16 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
         onConfirmEdit={() => handleEditConfirmation(true)}
         onCancelEdit={() => handleEditConfirmation(false)}
       />
+      {selectedCamera && (
+        <CameraPopup
+          camera={selectedCamera}
+          isOpen={showCameraPopup}
+          onClose={() => {
+            setShowCameraPopup(false);
+            setSelectedCamera(null);
+          }}
+        />
+      )}
     </>
   );
 };

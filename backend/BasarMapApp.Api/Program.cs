@@ -47,11 +47,13 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddScoped<IPointRepository, PointRepository>();
 builder.Services.AddScoped<ILineRepository, LineRepository>();
 builder.Services.AddScoped<IPolygonRepository, PolygonRepository>();
+builder.Services.AddScoped<ICameraRepository, CameraRepository>();
 
 // Register services
 builder.Services.AddScoped<IPointService, PointService>();
 builder.Services.AddScoped<ILineService, LineService>();
 builder.Services.AddScoped<IPolygonService, PolygonService>();
+builder.Services.AddScoped<ICameraService, CameraService>();
 
 // Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -68,6 +70,9 @@ if (app.Environment.IsDevelopment())
 
 // Use CORS
 app.UseCors("AllowFrontend");
+
+// Enable static file serving for videos
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 

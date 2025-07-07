@@ -614,4 +614,30 @@ tmp/
 # User-specific files
 *.user
 *.userosscache
-*.sln.docstates 
+*.sln.docstates
+
+# =========================
+# Video Files
+# =========================
+
+# Video files in cameras directory
+backend/BasarMapApp.Api/wwwroot/videos/
+**/wwwroot/videos/
+
+# Video file formats
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+*.m4v
+*.3gp
+*.mpg
+*.mpeg
+*.ogv
+
+# Allow sample/demo videos (uncomment if needed)
+# !sample*.mp4
+# !demo*.mp4 
