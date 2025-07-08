@@ -63,10 +63,6 @@ namespace BasarMapApp.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("VideoFileName")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Cameras_VideoFileName");
-
                     b.ToTable("Cameras");
                 });
 

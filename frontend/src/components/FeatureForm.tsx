@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Point, Line, Polygon, CreatePointDto, CreateLineDto, CreatePolygonDto } from '../types';
+import { Point, Line, Polygon, Camera, CreatePointDto, CreateLineDto, CreatePolygonDto, CreateCameraDto } from '../types';
 
 interface FeatureFormProps {
   isOpen: boolean;
-  featureType: 'point' | 'line' | 'polygon';
-  initialData?: Point | Line | Polygon;
+  featureType: 'point' | 'line' | 'polygon' | 'camera';
+  initialData?: Point | Line | Polygon | Camera;
   onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
   title: string;
@@ -20,6 +20,7 @@ const FeatureForm: React.FC<FeatureFormProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [videoFileName, setVideoFileName] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -28,9 +29,13 @@ const FeatureForm: React.FC<FeatureFormProps> = ({
       if ('description' in initialData) {
         setDescription(initialData.description || '');
       }
+      if (featureType === 'camera' && 'videoFileName' in initialData) {
+        setVideoFileName(initialData.videoFileName || '');
+      }
     } else {
       setName('');
       setDescription('');
+      setVideoFileName('');
     }
   }, [initialData, featureType]);
 
@@ -43,11 +48,20 @@ const FeatureForm: React.FC<FeatureFormProps> = ({
       return;
     }
 
+    if (featureType === 'camera' && !videoFileName.trim()) {
+      console.log('Video file name is empty for camera, returning');
+      return;
+    }
+
     console.log('Setting loading to true');
     setLoading(true);
     
     try {
-      console.log(`Submitting ${featureType} with:`, { name, description });
+      if (featureType === 'camera') {
+        console.log(`Submitting ${featureType} with:`, { name, description, videoFileName });
+      } else {
+        console.log(`Submitting ${featureType} with:`, { name, description });
+      }
       console.log('onSubmit prop:', onSubmit);
       
       if (featureType === 'point') {
@@ -62,11 +76,16 @@ const FeatureForm: React.FC<FeatureFormProps> = ({
         console.log('Calling onSubmit for polygon');
         await onSubmit({ name, description });
         console.log('onSubmit completed for polygon');
+      } else if (featureType === 'camera') {
+        console.log('Calling onSubmit for camera');
+        await onSubmit({ name, description, videoFileName, isActive: true });
+        console.log('onSubmit completed for camera');
       }
       
       console.log('Form submitted successfully');
       setName('');
       setDescription('');
+      setVideoFileName('');
     } catch (error) {
       console.error('Error submitting form:', error);
     } finally {
@@ -80,7 +99,7 @@ const FeatureForm: React.FC<FeatureFormProps> = ({
     return null;
   }
 
-  console.log('FeatureForm is rendering with:', { isOpen, featureType, name, description });
+  console.log('FeatureForm is rendering with:', { isOpen, featureType, name, description, videoFileName });
 
   return (
     <div className="feature-form-overlay">
@@ -115,13 +134,34 @@ const FeatureForm: React.FC<FeatureFormProps> = ({
             />
           </div>
 
+          {featureType === 'camera' && (
+            <>
+              <div className="form-group">
+                <label htmlFor="videoFileName">Video File Name *</label>
+                <input
+                  id="videoFileName"
+                  type="text"
+                  value={videoFileName}
+                  onChange={(e) => setVideoFileName(e.target.value)}
+                  placeholder="e.g. Video_1.mp4, 10hr_Video.mp4"
+                  required
+                />
+                <small className="field-hint">
+                  Enter the video file name that exists in the cameras folder
+                </small>
+              </div>
+
+
+            </>
+          )}
+
           <div className="form-actions">
             <button type="button" onClick={onCancel} disabled={loading}>
               Cancel
             </button>
             <button 
               type="submit" 
-              disabled={loading || !name.trim()}
+              disabled={loading || !name.trim() || (featureType === 'camera' && !videoFileName.trim())}
               onClick={() => console.log('Save button clicked!')}
             >
               {loading ? 'Saving...' : 'Save'}

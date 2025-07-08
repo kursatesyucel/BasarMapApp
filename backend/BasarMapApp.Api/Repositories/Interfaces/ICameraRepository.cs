@@ -1,4 +1,5 @@
 using BasarMapApp.Api.Models;
+using NetTopologySuite.Geometries;
 
 namespace BasarMapApp.Api.Repositories.Interfaces
 {
@@ -12,5 +13,6 @@ namespace BasarMapApp.Api.Repositories.Interfaces
         Task<bool> ExistsAsync(int id);
         Task<IEnumerable<Camera>> GetActiveCamerasAsync();
         Task<Camera?> GetByVideoFileNameAsync(string videoFileName);
+        Task<IEnumerable<Camera>> GetCamerasWithinPolygonAsync(Polygon polygon);
     }
 } 

@@ -115,10 +115,7 @@ namespace BasarMapApp.Api.Data
                 
                 entity.Property(e => e.UpdatedAt);
 
-                // VideoFileName için unique index
-                entity.HasIndex(e => e.VideoFileName)
-                    .IsUnique()
-                    .HasDatabaseName("IX_Cameras_VideoFileName");
+
             });
         }
     }

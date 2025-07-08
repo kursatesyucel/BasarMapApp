@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { UseMapFeaturesReturn } from '../hooks/useMapFeatures';
-import { Point, Line, Polygon, UpdatePointDto, UpdateLineDto, UpdatePolygonDto } from '../types';
+import { Point, Line, Polygon, Camera, UpdatePointDto, UpdateLineDto, UpdatePolygonDto, UpdateCameraDto } from '../types';
 import { calculateLineLength, calculatePolygonArea, formatDistance, formatArea } from '../utils/geometryUtils';
 import { pointService } from '../services/pointService';
 import { lineService } from '../services/lineService';
 import { polygonService } from '../services/polygonService';
+import { cameraService } from '../services/cameraService';
 import EditFeatureModal from './EditFeatureModal';
 
 interface SidebarProps {
@@ -16,6 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
     points,
     lines,
     polygons,
+    cameras,
     selectedFeature,
     loading,
     error,
@@ -26,11 +28,11 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingFeature, setEditingFeature] = useState<{
-    feature: Point | Line | Polygon;
-    type: 'point' | 'line' | 'polygon';
+    feature: Point | Line | Polygon | Camera;
+    type: 'point' | 'line' | 'polygon' | 'camera';
   } | null>(null);
 
-  const handleFeatureClick = (type: 'point' | 'line' | 'polygon', data: Point | Line | Polygon) => {
+  const handleFeatureClick = (type: 'point' | 'line' | 'polygon' | 'camera', data: Point | Line | Polygon | Camera) => {
     selectFeature({ type, data });
   };
 
@@ -44,7 +46,7 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
     }
   };
 
-  const handleEditSubmit = async (data: UpdatePointDto | UpdateLineDto | UpdatePolygonDto): Promise<boolean> => {
+  const handleEditSubmit = async (data: UpdatePointDto | UpdateLineDto | UpdatePolygonDto | UpdateCameraDto): Promise<boolean> => {
     if (!editingFeature) return false;
 
     try {
@@ -58,6 +60,9 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
         success = !!result;
       } else if (editingFeature.type === 'polygon') {
         const result = await polygonService.update(editingFeature.feature.id, data as UpdatePolygonDto);
+        success = !!result;
+      } else if (editingFeature.type === 'camera') {
+        const result = await cameraService.update(editingFeature.feature.id, data as UpdateCameraDto);
         success = !!result;
       }
 
@@ -90,8 +95,8 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
   };
 
   const renderFeatureItem = (
-    type: 'point' | 'line' | 'polygon',
-    feature: Point | Line | Polygon,
+    type: 'point' | 'line' | 'polygon' | 'camera',
+    feature: Point | Line | Polygon | Camera,
     additionalInfo: string
   ) => {
     const isSelected = selectedFeature?.data.id === feature.id && selectedFeature?.type === type;
@@ -215,6 +220,35 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
           </>
         )}
 
+        {type === 'camera' && (
+          <>
+            <div className="detail-row">
+              <span className="detail-label">Latitude:</span>
+              <span className="detail-value">{(data as Camera).latitude.toFixed(6)}</span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">Longitude:</span>
+              <span className="detail-value">{(data as Camera).longitude.toFixed(6)}</span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">Video File:</span>
+              <span className="detail-value">{(data as Camera).videoFileName}</span>
+            </div>
+            <div className="detail-row">
+              <span className="detail-label">Status:</span>
+              <span className="detail-value">
+                {(data as Camera).isActive ? '🟢 Active' : '🔴 Inactive'}
+              </span>
+            </div>
+            {(data as Camera).description && (
+              <div className="detail-row">
+                <span className="detail-label">Description:</span>
+                <span className="detail-value">{(data as Camera).description}</span>
+              </div>
+            )}
+          </>
+        )}
+
         <div className="detail-row">
           <span className="detail-label">Created:</span>
           <span className="detail-value">
@@ -317,6 +351,17 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
           )}
         </div>
 
+        <div className="feature-list">
+          <h3>Cameras ({cameras.length})</h3>
+          {cameras.map(camera => 
+            renderFeatureItem(
+              'camera',
+              camera,
+              `${camera.videoFileName} - ${camera.isActive ? '🟢 Active' : '🔴 Inactive'}`
+            )
+          )}
+        </div>
+
         {renderSelectedFeatureDetails()}
       </div>
 
@@ -324,7 +369,7 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
         isOpen={showEditModal}
         feature={editingFeature?.feature || null}
         featureType={editingFeature?.type || 'point'}
-        allFeatures={{ points, lines, polygons }}
+        allFeatures={{ points, lines, polygons, cameras }}
         onSubmit={handleEditSubmit}
         onCancel={handleEditCancel}
       />

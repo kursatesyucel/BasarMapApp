@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Point, Line, Polygon, UpdatePointDto, UpdateLineDto, UpdatePolygonDto } from '../types';
+import { Point, Line, Polygon, Camera, UpdatePointDto, UpdateLineDto, UpdatePolygonDto, UpdateCameraDto } from '../types';
 
 interface EditFeatureModalProps {
   isOpen: boolean;
-  feature: Point | Line | Polygon | null;
-  featureType: 'point' | 'line' | 'polygon';
+  feature: Point | Line | Polygon | Camera | null;
+  featureType: 'point' | 'line' | 'polygon' | 'camera';
   allFeatures: {
     points: Point[];
     lines: Line[];
     polygons: Polygon[];
+    cameras?: Camera[];
   };
-  onSubmit: (data: UpdatePointDto | UpdateLineDto | UpdatePolygonDto) => Promise<boolean>;
+  onSubmit: (data: UpdatePointDto | UpdateLineDto | UpdatePolygonDto | UpdateCameraDto) => Promise<boolean>;
   onCancel: () => void;
 }
 
@@ -25,6 +26,8 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [coordinates, setCoordinates] = useState('');
+  const [videoFileName, setVideoFileName] = useState('');
+  const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -45,7 +48,15 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
         const polygon = feature as Polygon;
         const coordStr = polygon.coordinates[0]?.map(coord => `${coord[1]}, ${coord[0]}`).join('\n') || '';
         setCoordinates(coordStr);
+      } else if (featureType === 'camera') {
+        const camera = feature as Camera;
+        setCoordinates(`${camera.latitude}, ${camera.longitude}`);
+        setVideoFileName(camera.videoFileName || '');
+        setIsActive(camera.isActive ?? true);
       }
+    } else {
+      setVideoFileName('');
+      setIsActive(true);
     }
     setErrors([]);
   }, [feature, featureType]);
@@ -61,7 +72,8 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
       const isDuplicateName = 
         allFeatures.points.some(p => p.id !== feature?.id && p.name === name.trim()) ||
         allFeatures.lines.some(l => l.id !== feature?.id && l.name === name.trim()) ||
-        allFeatures.polygons.some(p => p.id !== feature?.id && p.name === name.trim());
+        allFeatures.polygons.some(p => p.id !== feature?.id && p.name === name.trim()) ||
+        (allFeatures.cameras && allFeatures.cameras.some(c => c.id !== feature?.id && c.name === name.trim()));
       
       if (isDuplicateName) {
         validationErrors.push('A feature with this name already exists. Please choose a different name.');
@@ -73,7 +85,7 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
       validationErrors.push('Coordinates are required');
     } else {
       try {
-        if (featureType === 'point') {
+        if (featureType === 'point' || featureType === 'camera') {
           const parts = coordinates.trim().split(',');
           if (parts.length !== 2) {
             validationErrors.push('Point coordinates must be in format: latitude, longitude');
@@ -134,11 +146,18 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
       }
     }
 
+    // Camera-specific validation
+    if (featureType === 'camera') {
+      if (!videoFileName.trim()) {
+        validationErrors.push('Video file name is required');
+      }
+    }
+
     return validationErrors;
   };
 
   const parseCoordinates = () => {
-    if (featureType === 'point') {
+    if (featureType === 'point' || featureType === 'camera') {
       const parts = coordinates.trim().split(',');
       const lat = parseFloat(parts[0].trim());
       const lng = parseFloat(parts[1].trim());
@@ -194,6 +213,16 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
           description: description.trim(),
           latitude: coords.latitude,
           longitude: coords.longitude
+        };
+      } else if (featureType === 'camera') {
+        const coords = parseCoordinates() as { latitude: number; longitude: number };
+        updateData = {
+          name: name.trim(),
+          description: description.trim(),
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          videoFileName: videoFileName.trim(),
+          isActive: isActive
         };
       } else if (featureType === 'line') {
         updateData = {
@@ -261,7 +290,7 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
           <div className="form-group">
             <label htmlFor="edit-coordinates">
               Coordinates * 
-              {featureType === 'point' && (
+              {(featureType === 'point' || featureType === 'camera') && (
                 <small style={{ display: 'block', color: '#666', fontSize: '0.8em' }}>
                   Format: latitude, longitude (e.g., 39.123456, 35.123456)
                 </small>
@@ -282,17 +311,47 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
               value={coordinates}
               onChange={(e) => setCoordinates(e.target.value)}
               placeholder={
-                featureType === 'point' 
+                (featureType === 'point' || featureType === 'camera')
                   ? '39.123456, 35.123456'
                   : featureType === 'line'
                   ? '39.123456, 35.123456\n39.124456, 35.124456\n39.125456, 35.125456'
                   : '39.123456, 35.123456\n39.124456, 35.124456\n39.125456, 35.125456\n39.123456, 35.123456'
               }
-              rows={featureType === 'point' ? 2 : 6}
+              rows={(featureType === 'point' || featureType === 'camera') ? 2 : 6}
               required
               style={{ fontFamily: 'monospace', fontSize: '0.9em' }}
             />
           </div>
+
+          {featureType === 'camera' && (
+            <>
+              <div className="form-group">
+                <label htmlFor="edit-videoFileName">Video File Name *</label>
+                <input
+                  id="edit-videoFileName"
+                  type="text"
+                  value={videoFileName}
+                  onChange={(e) => setVideoFileName(e.target.value)}
+                  placeholder="e.g. Video_1.mp4, 10hr_Video.mp4"
+                  required
+                />
+                <small style={{ display: 'block', color: '#666', fontSize: '0.8em', marginTop: '0.25rem' }}>
+                  Enter the video file name that exists in the cameras folder
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                  />
+                  <span className="checkbox-text">Camera is active</span>
+                </label>
+              </div>
+            </>
+          )}
 
           <div className="form-group" style={{ marginBottom: '0.5rem' }}>
             <label style={{ color: '#666', fontSize: '0.9em' }}>
@@ -321,7 +380,7 @@ const EditFeatureModal: React.FC<EditFeatureModalProps> = ({
             <button type="button" onClick={onCancel} disabled={loading}>
               Cancel
             </button>
-            <button type="submit" disabled={loading || !name.trim() || !coordinates.trim()}>
+            <button type="submit" disabled={loading || !name.trim() || !coordinates.trim() || (featureType === 'camera' && !videoFileName.trim())}>
               {loading ? 'Updating...' : 'Update'}
             </button>
           </div>

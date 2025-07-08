@@ -58,7 +58,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
 
   // Form state
   const [showForm, setShowForm] = useState(false);
-  const [formType, setFormType] = useState<'point' | 'line' | 'polygon'>('point');
+  const [formType, setFormType] = useState<'point' | 'line' | 'polygon' | 'camera'>('point');
   const [pendingGeometry, setPendingGeometry] = useState<any>(null);
 
   // Points within polygon modal state
@@ -72,7 +72,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
   const [pointsAffectedByEdit, setPointsAffectedByEdit] = useState<Point[]>([]);
 
   // Camera state
-  const [cameras, setCameras] = useState<Camera[]>([]);
+  const { cameras } = mapFeatures;
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
   const [showCameraPopup, setShowCameraPopup] = useState(false);
 
@@ -109,7 +109,9 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
     const drawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
-        marker: {},
+        marker: {
+          icon: L.Icon.Default.prototype // Normal point marker
+        },
         polyline: {},
         polygon: {},
         rectangle: false,
@@ -121,6 +123,77 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
         remove: true
       }
     });
+
+    // Add custom camera drawing control
+    const CameraControl = L.Control.extend({
+      options: {
+        position: 'topright'
+      },
+      
+      onAdd: function(map: L.Map) {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+        const button = L.DomUtil.create('a', 'leaflet-control-camera', container);
+        button.href = '#';
+        button.title = 'Add Camera Point';
+        button.innerHTML = '📹';
+        button.style.fontSize = '16px';
+        button.style.lineHeight = '26px';
+        button.style.textAlign = 'center';
+        button.style.textDecoration = 'none';
+        button.style.color = '#333';
+        button.style.backgroundColor = 'white';
+        button.style.width = '26px';
+        button.style.height = '26px';
+        button.style.display = 'block';
+        
+        let drawingMode = false;
+        
+        L.DomEvent.on(button, 'click', function(e) {
+          L.DomEvent.stopPropagation(e);
+          L.DomEvent.preventDefault(e);
+          
+          if (!drawingMode) {
+            // Enable camera drawing mode
+            drawingMode = true;
+            button.style.backgroundColor = '#007acc';
+            button.style.color = 'white';
+            map.getContainer().style.cursor = 'crosshair';
+            
+            // Add one-time click event
+            const onMapClick = function(e: L.LeafletMouseEvent) {
+              // Create camera marker
+              const marker = L.marker(e.latlng, { icon: cameraIcon });
+              
+              // Reset drawing mode
+              drawingMode = false;
+              button.style.backgroundColor = 'white';
+              button.style.color = '#333';
+              map.getContainer().style.cursor = '';
+              map.off('click', onMapClick);
+              
+              // Trigger form with camera type
+              setPendingGeometry({ layer: marker, layerType: 'camera' });
+              setFormType('camera');
+              setShowForm(true);
+            };
+            
+            map.on('click', onMapClick);
+          } else {
+            // Disable camera drawing mode
+            drawingMode = false;
+            button.style.backgroundColor = 'white';
+            button.style.color = '#333';
+            map.getContainer().style.cursor = '';
+            map.off('click');
+          }
+        });
+        
+        return container;
+      }
+    });
+
+    const cameraControl = new CameraControl();
+    map.addControl(cameraControl);
 
     map.addControl(drawControl);
 
@@ -134,9 +207,10 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
       setPendingGeometry({ layer, layerType });
       const mappedFormType = layerType === 'marker' ? 'point' : 
                          layerType === 'polyline' ? 'line' : 
-                         layerType === 'polygon' ? 'polygon' : layerType;
+                         layerType === 'polygon' ? 'polygon' :
+                         layerType === 'camera' ? 'camera' : layerType;
       console.log('Mapping layerType:', layerType, '→ formType:', mappedFormType);
-      setFormType(mappedFormType as 'point' | 'line' | 'polygon');
+      setFormType(mappedFormType as 'point' | 'line' | 'polygon' | 'camera');
       console.log('Setting showForm to true');
       setShowForm(true);
     });
@@ -227,11 +301,15 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
             }
               
             if (polygon) {
-              // Check for points within the edited polygon BEFORE saving
+              // Check for points and cameras within the edited polygon BEFORE saving
               try {
-                const pointsWithin = await pointService.getPointsWithinPolygon(coordinates);
-                if (pointsWithin.length > 0) {
-                  // Show confirmation modal with affected points
+                const [pointsWithin, camerasWithin] = await Promise.all([
+                  pointService.getPointsWithinPolygon(coordinates),
+                  cameraService.getCamerasWithinPolygon(coordinates)
+                ]);
+                
+                if (pointsWithin.length > 0 || camerasWithin.length > 0) {
+                  // Show confirmation modal with affected features
                   setPendingEditData({
                     polygonId: layer._polygonId,
                     polygon: polygon,
@@ -242,7 +320,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
                   return; // Don't save yet, wait for user confirmation
                 }
               } catch (error) {
-                console.error('Error checking points within edited polygon:', error);
+                console.error('Error checking features within edited polygon:', error);
               }
               
               // No points affected, proceed with normal update
@@ -253,6 +331,35 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
               };
               
               const updatePromise = polygonService.update(layer._polygonId, updateData);
+              updatePromises.push(updatePromise);
+            }
+          } else if (layer._cameraId) {
+            const latlng = layer.getLatLng();
+            
+            // Try to find in local state first
+            let camera = cameras.find(c => c.id === layer._cameraId || c.id == layer._cameraId || String(c.id) === String(layer._cameraId));
+            
+            // If not found in local state, fetch from API
+            if (!camera) {
+              try {
+                const fetchedCamera = await cameraService.getById(layer._cameraId);
+                camera = fetchedCamera || undefined;
+              } catch (error) {
+                console.error('Failed to fetch camera from API:', error);
+              }
+            }
+              
+            if (camera) {
+              const updateData = {
+                name: camera.name,
+                description: camera.description,
+                latitude: latlng.lat,
+                longitude: latlng.lng,
+                videoFileName: camera.videoFileName,
+                isActive: camera.isActive
+              };
+              
+              const updatePromise = cameraService.update(layer._cameraId, updateData);
               updatePromises.push(updatePromise);
             }
           }
@@ -305,19 +412,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
     };
   }, []);
 
-  // Load cameras on mount
-  useEffect(() => {
-    const loadCameras = async () => {
-      try {
-        const cameraData = await cameraService.getActive();
-        setCameras(cameraData);
-      } catch (error) {
-        console.error('Error loading cameras:', error);
-      }
-    };
 
-    loadCameras();
-  }, []);
 
   // Camera click handler
   const handleCameraClick = (camera: Camera) => {
@@ -364,6 +459,21 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
         if (line) {
           mapFeatures.refreshLines();
         }
+      } else if (layerType === 'camera') {
+        const latlng = layer.getLatLng();
+        console.log('Creating camera with data:', { ...data, latitude: latlng.lat, longitude: latlng.lng });
+        const camera = await cameraService.create({
+          name: data.name,
+          description: data.description,
+          latitude: latlng.lat,
+          longitude: latlng.lng,
+          videoFileName: data.videoFileName,
+          isActive: data.isActive
+        });
+        console.log('Camera creation result:', camera);
+        if (camera) {
+          mapFeatures.refreshCameras();
+        }
       } else if (layerType === 'polygon') {
         const outerRing = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lng, latlng.lat]);
         
@@ -385,16 +495,20 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
         if (polygon) {
           mapFeatures.refreshPolygons();
           
-          // After polygon creation, check for points within and show modal
+          // After polygon creation, check for points and cameras within and show modal
           try {
-            const pointsWithin = await pointService.getPointsWithinPolygon(coordinates);
-            if (pointsWithin.length > 0) {
+            const [pointsWithin, camerasWithin] = await Promise.all([
+              pointService.getPointsWithinPolygon(coordinates),
+              cameraService.getCamerasWithinPolygon(coordinates)
+            ]);
+            
+            if (pointsWithin.length > 0 || camerasWithin.length > 0) {
               setPointsWithinPolygon(pointsWithin);
               setCurrentPolygonName(polygonData.name);
               setShowPointsModal(true);
             }
           } catch (error) {
-            console.error('Error checking points within polygon:', error);
+            console.error('Error checking features within polygon:', error);
           }
         }
       }
@@ -503,7 +617,21 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
       
       editableLayersRef.current!.addLayer(leafletPolygon);
     });
-  }, [mapFeatures.points, mapFeatures.lines, mapFeatures.polygons, mapFeatures.selectFeature]);
+
+    // Add cameras to editable layers  
+    cameras.forEach(camera => {
+      const marker = L.marker([camera.latitude, camera.longitude], { icon: cameraIcon });
+      (marker as any)._cameraId = camera.id;
+      (marker as any)._featureType = 'camera';
+      
+      // Add click handler for camera popup
+      marker.on('click', () => {
+        handleCameraClick(camera);
+      });
+      
+      editableLayersRef.current!.addLayer(marker);
+    });
+  }, [mapFeatures.points, mapFeatures.lines, mapFeatures.polygons, cameras, mapFeatures.selectFeature]);
 
   // Update lines layer
   useEffect(() => {
@@ -611,6 +739,9 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
     if (type === 'point') {
       const point = data as any;
       mapInstanceRef.current.setView([point.latitude, point.longitude], 15);
+    } else if (type === 'camera') {
+      const camera = data as any;
+      mapInstanceRef.current.setView([camera.latitude, camera.longitude], 15);
     } else if (type === 'line') {
       const line = data as any;
       if (line.coordinates.length > 0) {

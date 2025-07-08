@@ -12,5 +12,6 @@ namespace BasarMapApp.Api.Services.Interfaces
         Task<ApiResponse<bool>> DeleteAsync(int id);
         Task<ApiResponse<IEnumerable<CameraDto>>> GetActiveCamerasAsync();
         Task<ApiResponse<CameraDto>> GetByVideoFileNameAsync(string videoFileName);
+        Task<ApiResponse<IEnumerable<CameraDto>>> GetCamerasWithinPolygonAsync(List<List<List<double>>> polygonCoordinates);
     }
 } 

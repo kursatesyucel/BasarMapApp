@@ -52,5 +52,10 @@ export const cameraService = {
 
   getVideoStreamUrl(videoFileName: string): string {
     return `/api/cameras/stream/${videoFileName}`;
+  },
+
+  async getCamerasWithinPolygon(polygonCoordinates: number[][][]): Promise<Camera[]> {
+    const response = await api.post('/cameras/within-polygon', polygonCoordinates);
+    return response.data.data;
   }
 }; 

@@ -313,6 +313,32 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
+        /// Get cameras within a polygon area
+        /// </summary>
+        /// <param name="polygonCoordinates">Polygon coordinates in GeoJSON format</param>
+        /// <returns>List of cameras within the polygon</returns>
+        [HttpPost("within-polygon")]
+        public async Task<ActionResult<ApiResponse<IEnumerable<CameraDto>>>> GetCamerasWithinPolygon([FromBody] List<List<List<double>>> polygonCoordinates)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ApiResponse<IEnumerable<CameraDto>>.FailureResult(
+                    "Invalid model state",
+                    "Please check your request data"
+                ));
+            }
+
+            var result = await _cameraService.GetCamerasWithinPolygonAsync(polygonCoordinates);
+            
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
+        /// <summary>
         /// Get content type based on file extension
         /// </summary>
         private static string GetContentType(string extension)

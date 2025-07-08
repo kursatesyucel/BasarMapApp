@@ -87,5 +87,12 @@ namespace BasarMapApp.Api.Repositories.Implementations
             return await _context.Cameras
                 .FirstOrDefaultAsync(c => c.VideoFileName == videoFileName);
         }
+
+        public async Task<IEnumerable<Camera>> GetCamerasWithinPolygonAsync(Polygon polygon)
+        {
+            return await _context.Cameras
+                .Where(c => polygon.Contains(c.Geometry))
+                .ToListAsync();
+        }
     }
 } 

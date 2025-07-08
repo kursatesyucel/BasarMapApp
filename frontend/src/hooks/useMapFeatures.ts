@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Point, Line, Polygon, SelectedFeature } from '../types';
+import { Point, Line, Polygon, Camera, SelectedFeature } from '../types';
 import { pointService } from '../services/pointService';
 import { lineService } from '../services/lineService';
 import { polygonService } from '../services/polygonService';
+import { cameraService } from '../services/cameraService';
 
 export interface UseMapFeaturesReturn {
   points: Point[];
   lines: Line[];
   polygons: Polygon[];
+  cameras: Camera[];
   selectedFeature: SelectedFeature | null;
   loading: boolean;
   error: string | null;
@@ -15,6 +17,7 @@ export interface UseMapFeaturesReturn {
   refreshPoints: () => Promise<void>;
   refreshLines: () => Promise<void>;
   refreshPolygons: () => Promise<void>;
+  refreshCameras: () => Promise<void>;
   selectFeature: (feature: SelectedFeature | null) => void;
   deleteSelectedFeature: () => Promise<boolean>;
 }
@@ -23,6 +26,7 @@ export function useMapFeatures(): UseMapFeaturesReturn {
   const [points, setPoints] = useState<Point[]>([]);
   const [lines, setLines] = useState<Line[]>([]);
   const [polygons, setPolygons] = useState<Polygon[]>([]);
+  const [cameras, setCameras] = useState<Camera[]>([]);
   const [selectedFeature, setSelectedFeature] = useState<SelectedFeature | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,14 +64,25 @@ export function useMapFeatures(): UseMapFeaturesReturn {
     }
   }, []);
 
+  const refreshCameras = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await cameraService.getAll();
+      setCameras(data);
+    } catch (err) {
+      setError('Failed to load cameras');
+      console.error('Error loading cameras:', err);
+    }
+  }, []);
+
   const refreshAll = useCallback(async () => {
     setLoading(true);
     try {
-      await Promise.all([refreshPoints(), refreshLines(), refreshPolygons()]);
+      await Promise.all([refreshPoints(), refreshLines(), refreshPolygons(), refreshCameras()]);
     } finally {
       setLoading(false);
     }
-  }, [refreshPoints, refreshLines, refreshPolygons]);
+  }, [refreshPoints, refreshLines, refreshPolygons, refreshCameras]);
 
   const selectFeature = useCallback((feature: SelectedFeature | null) => {
     setSelectedFeature(feature);
@@ -82,17 +97,27 @@ export function useMapFeatures(): UseMapFeaturesReturn {
 
       switch (selectedFeature.type) {
         case 'point':
-          success = await pointService.delete(id);
-          if (success) await refreshPoints();
+          await pointService.delete(id);
+          await refreshPoints();
+          success = true;
           break;
         case 'line':
-          success = await lineService.delete(id);
-          if (success) await refreshLines();
+          await lineService.delete(id);
+          await refreshLines();
+          success = true;
           break;
         case 'polygon':
-          success = await polygonService.delete(id);
-          if (success) await refreshPolygons();
+          await polygonService.delete(id);
+          await refreshPolygons();
+          success = true;
           break;
+        case 'camera':
+          await cameraService.delete(id);
+          await refreshCameras();
+          success = true;
+          break;
+        default:
+          return false;
       }
 
       if (success) {
@@ -105,7 +130,7 @@ export function useMapFeatures(): UseMapFeaturesReturn {
       console.error('Error deleting feature:', err);
       return false;
     }
-  }, [selectedFeature, refreshPoints, refreshLines, refreshPolygons]);
+  }, [selectedFeature, refreshPoints, refreshLines, refreshPolygons, refreshCameras]);
 
   // Load all features on mount
   useEffect(() => {
@@ -116,6 +141,7 @@ export function useMapFeatures(): UseMapFeaturesReturn {
     points,
     lines,
     polygons,
+    cameras,
     selectedFeature,
     loading,
     error,
@@ -123,6 +149,7 @@ export function useMapFeatures(): UseMapFeaturesReturn {
     refreshPoints,
     refreshLines,
     refreshPolygons,
+    refreshCameras,
     selectFeature,
     deleteSelectedFeature,
   };

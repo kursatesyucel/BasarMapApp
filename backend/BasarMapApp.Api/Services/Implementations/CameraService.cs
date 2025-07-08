@@ -79,16 +79,6 @@ namespace BasarMapApp.Api.Services.Implementations
         {
             try
             {
-                // Check if video file name already exists
-                var existingCamera = await _cameraRepository.GetByVideoFileNameAsync(createCameraDto.VideoFileName);
-                if (existingCamera != null)
-                {
-                    return ApiResponse<CameraDto>.FailureResult(
-                        "Video file name already exists",
-                        $"A camera with video file name '{createCameraDto.VideoFileName}' already exists"
-                    );
-                }
-
                 var camera = _mapper.Map<Camera>(createCameraDto);
                 var createdCamera = await _cameraRepository.CreateAsync(camera);
                 var cameraDto = _mapper.Map<CameraDto>(createdCamera);
@@ -125,15 +115,7 @@ namespace BasarMapApp.Api.Services.Implementations
                     );
                 }
 
-                // Check if video file name already exists (excluding current camera)
-                var existingCamera = await _cameraRepository.GetByVideoFileNameAsync(updateCameraDto.VideoFileName);
-                if (existingCamera != null && existingCamera.Id != id)
-                {
-                    return ApiResponse<CameraDto>.FailureResult(
-                        "Video file name already exists",
-                        $"A camera with video file name '{updateCameraDto.VideoFileName}' already exists"
-                    );
-                }
+
 
                 var camera = _mapper.Map<Camera>(updateCameraDto);
                 var updatedCamera = await _cameraRepository.UpdateAsync(id, camera);
@@ -239,6 +221,49 @@ namespace BasarMapApp.Api.Services.Implementations
             {
                 return ApiResponse<CameraDto>.FailureResult(
                     "An error occurred while retrieving the camera",
+                    ex.Message
+                );
+            }
+        }
+
+        public async Task<ApiResponse<IEnumerable<CameraDto>>> GetCamerasWithinPolygonAsync(List<List<List<double>>> polygonCoordinates)
+        {
+            try
+            {
+                if (polygonCoordinates == null || polygonCoordinates.Count == 0)
+                {
+                    return ApiResponse<IEnumerable<CameraDto>>.FailureResult(
+                        "Invalid polygon coordinates",
+                        "Polygon coordinates cannot be empty"
+                    );
+                }
+
+                // Convert coordinates to PostGIS Polygon
+                var outerRing = polygonCoordinates[0];
+                var shell = _geometryFactory.CreateLinearRing(
+                    outerRing.Select(coord => new Coordinate(coord[0], coord[1])).ToArray()
+                );
+
+                var holes = polygonCoordinates.Skip(1).Select(ring =>
+                    _geometryFactory.CreateLinearRing(
+                        ring.Select(coord => new Coordinate(coord[0], coord[1])).ToArray()
+                    )).ToArray();
+
+                var polygon = _geometryFactory.CreatePolygon(shell, holes);
+
+                // Query cameras within polygon
+                var cameras = await _cameraRepository.GetCamerasWithinPolygonAsync(polygon);
+                var cameraDtos = _mapper.Map<IEnumerable<CameraDto>>(cameras);
+
+                return ApiResponse<IEnumerable<CameraDto>>.SuccessResult(
+                    cameraDtos,
+                    $"Found {cameraDtos.Count()} cameras within polygon"
+                );
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<IEnumerable<CameraDto>>.FailureResult(
+                    "An error occurred while querying cameras within polygon",
                     ex.Message
                 );
             }
