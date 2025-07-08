@@ -284,7 +284,12 @@ namespace BasarMapApp.Api.Controllers
                 
                 // Seek to start position and read the requested range
                 fileStream.Seek(start, SeekOrigin.Begin);
-                var buffer = new byte[8192]; // 8KB buffer
+                var buffer = new byte[16384]; // 16KB buffer - Daha büyük chunk'lar için
+                // Diğer seçenekler:
+                // 4096  = 4KB  (Daha küçük chunk'lar)
+                // 8192  = 8KB  (Varsayılan)
+                // 16384 = 16KB (Daha büyük chunk'lar)
+                // 32768 = 32KB (En büyük chunk'lar)
                 var totalBytesToRead = contentLength;
                 var totalBytesRead = 0L;
                 
