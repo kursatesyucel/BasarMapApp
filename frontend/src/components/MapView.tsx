@@ -8,7 +8,7 @@ import { polygonService } from '../services/polygonService';
 import { cameraService } from '../services/cameraService';
 import { calculateLineLength, calculatePolygonArea, formatDistance, formatArea } from '../utils/geometryUtils';
 import FeatureForm from './FeatureForm';
-import PointsWithinPolygonModal from './PointsWithinPolygonModal';
+import FeaturesWithinPolygonModal from './FeaturesWithinPolygonModal';
 import CameraPopup from './CameraPopup';
 import { CreatePointDto, CreateLineDto, CreatePolygonDto, Point, Camera } from '../types';
 
@@ -61,15 +61,15 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
   const [formType, setFormType] = useState<'point' | 'line' | 'polygon' | 'camera'>('point');
   const [pendingGeometry, setPendingGeometry] = useState<any>(null);
 
-  // Points within polygon modal state
-  const [showPointsModal, setShowPointsModal] = useState(false);
-  const [pointsWithinPolygon, setPointsWithinPolygon] = useState<Point[]>([]);
+  // Features within polygon modal state
+  const [showFeaturesModal, setShowFeaturesModal] = useState(false);
+  const [featuresWithinPolygon, setFeaturesWithinPolygon] = useState<{points: Point[], cameras: Camera[]}>({points: [], cameras: []});
   const [currentPolygonName, setCurrentPolygonName] = useState<string>('');
 
   // Edit confirmation modal state
   const [showEditConfirmationModal, setShowEditConfirmationModal] = useState(false);
   const [pendingEditData, setPendingEditData] = useState<any>(null);
-  const [pointsAffectedByEdit, setPointsAffectedByEdit] = useState<Point[]>([]);
+  const [featuresAffectedByEdit, setFeaturesAffectedByEdit] = useState<{points: Point[], cameras: Camera[]}>({points: [], cameras: []});
 
   // Camera state
   const { cameras } = mapFeatures;
@@ -315,7 +315,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
                     polygon: polygon,
                     coordinates: coordinates
                   });
-                  setPointsAffectedByEdit(pointsWithin);
+                  setFeaturesAffectedByEdit({points: pointsWithin, cameras: camerasWithin});
                   setShowEditConfirmationModal(true);
                   return; // Don't save yet, wait for user confirmation
                 }
@@ -503,9 +503,9 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
             ]);
             
             if (pointsWithin.length > 0 || camerasWithin.length > 0) {
-              setPointsWithinPolygon(pointsWithin);
+              setFeaturesWithinPolygon({points: pointsWithin, cameras: camerasWithin});
               setCurrentPolygonName(polygonData.name);
-              setShowPointsModal(true);
+              setShowFeaturesModal(true);
             }
           } catch (error) {
             console.error('Error checking features within polygon:', error);
@@ -525,9 +525,9 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
     setPendingGeometry(null);
   };
 
-  const handlePointsModalClose = () => {
-    setShowPointsModal(false);
-    setPointsWithinPolygon([]);
+  const handleFeaturesModalClose = () => {
+    setShowFeaturesModal(false);
+    setFeaturesWithinPolygon({points: [], cameras: []});
     setCurrentPolygonName('');
   };
 
@@ -556,7 +556,7 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
     // Close modal and clear state
     setShowEditConfirmationModal(false);
     setPendingEditData(null);
-    setPointsAffectedByEdit([]);
+    setFeaturesAffectedByEdit({points: [], cameras: []});
   };
 
   // Update points layer
@@ -771,15 +771,17 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
         onCancel={handleFormCancel}
         title={`Create ${formType.charAt(0).toUpperCase() + formType.slice(1)}`}
       />
-      <PointsWithinPolygonModal
-        isOpen={showPointsModal}
-        points={pointsWithinPolygon}
-        onClose={handlePointsModalClose}
+      <FeaturesWithinPolygonModal
+        isOpen={showFeaturesModal}
+        points={featuresWithinPolygon.points}
+        cameras={featuresWithinPolygon.cameras}
+        onClose={handleFeaturesModalClose}
         polygonName={currentPolygonName}
       />
-      <PointsWithinPolygonModal
+      <FeaturesWithinPolygonModal
         isOpen={showEditConfirmationModal}
-        points={pointsAffectedByEdit}
+        points={featuresAffectedByEdit.points}
+        cameras={featuresAffectedByEdit.cameras}
         onClose={() => handleEditConfirmation(false)}
         polygonName={`Edited ${pendingEditData?.polygon?.name || 'Polygon'}`}
         showEditConfirmation={true}
