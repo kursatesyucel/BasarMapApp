@@ -395,6 +395,9 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
           } else if (layer._polygonId) {
             await polygonService.delete(layer._polygonId);
             mapFeatures.refreshPolygons();
+          } else if (layer._cameraId) {
+            await cameraService.delete(layer._cameraId);
+            mapFeatures.refreshCameras();
           }
         } catch (error) {
           console.error('Error deleting feature:', error);
