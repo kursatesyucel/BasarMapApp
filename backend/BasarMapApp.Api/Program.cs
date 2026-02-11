@@ -60,6 +60,7 @@ builder.Services.AddScoped<ILineService, LineService>();
 builder.Services.AddScoped<IPolygonService, PolygonService>();
 builder.Services.AddScoped<ICameraService, CameraService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IMailService, GmailMailService>();
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];

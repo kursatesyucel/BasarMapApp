@@ -129,12 +129,26 @@ namespace BasarMapApp.Api.Data
                 entity.HasIndex(e => e.Username)
                     .IsUnique();
                 
+                entity.Property(e => e.Email)
+                    .IsRequired()
+                    .HasMaxLength(255);
+                
+                entity.HasIndex(e => e.Email)
+                    .IsUnique();
+                
                 entity.Property(e => e.PasswordHash)
                     .IsRequired();
                 
                 entity.Property(e => e.Role)
                     .IsRequired()
                     .HasMaxLength(20);
+                
+                entity.Property(e => e.VerificationCode)
+                    .HasMaxLength(10);
+                
+                entity.Property(e => e.IsEmailConfirmed)
+                    .IsRequired()
+                    .HasDefaultValue(false);
                 
                 entity.Property(e => e.CreatedAt)
                     .IsRequired();

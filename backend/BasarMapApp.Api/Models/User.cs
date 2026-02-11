@@ -11,11 +11,20 @@ namespace BasarMapApp.Api.Models
         public string Username { get; set; } = string.Empty;
         
         [Required]
+        [MaxLength(255)]
+        public string Email { get; set; } = string.Empty;
+        
+        [Required]
         public string PasswordHash { get; set; } = string.Empty;
         
         [Required]
         [MaxLength(20)]
         public string Role { get; set; } = "User";
+        
+        [MaxLength(10)]
+        public string? VerificationCode { get; set; }
+        
+        public bool IsEmailConfirmed { get; set; } = false;
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

@@ -642,3 +642,6 @@ backend/BasarMapApp.Api/wwwroot/videos/
 # !sample*.mp4
 # !demo*.mp4 
 ROLE_BASED_UI_UPDATE.md
+backend/EMAIL_VERIFICATION_V2.md
+QUICK_START_EMAIL_VERIFICATION.md
+EMAIL_VERIFICATION_SUMMARY.md

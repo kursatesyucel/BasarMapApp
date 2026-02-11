@@ -20,9 +20,28 @@ namespace BasarMapApp.Api.Repositories.Implementations
                 .FirstOrDefaultAsync(u => u.Username == username);
         }
 
+        public async Task<User?> GetByEmailAsync(string email)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<User?> GetByUsernameOrEmailAsync(string identifier)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Username == identifier || u.Email == identifier);
+        }
+
         public async Task<User> CreateAsync(User user)
         {
             _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+            return user;
+        }
+
+        public async Task<User> UpdateAsync(User user)
+        {
+            _context.Users.Update(user);
             await _context.SaveChangesAsync();
             return user;
         }

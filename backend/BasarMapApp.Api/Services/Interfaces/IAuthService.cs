@@ -5,7 +5,8 @@ namespace BasarMapApp.Api.Services.Interfaces
 {
     public interface IAuthService
     {
-        Task<AuthResponseDto?> RegisterAsync(UserRegisterDto registerDto);
+        Task<(bool Success, string? Message)> RegisterAsync(UserRegisterDto registerDto);
+        Task<(bool Success, string? Message)> VerifyEmailAsync(VerifyCodeDto verifyDto);
         Task<AuthResponseDto?> LoginAsync(UserLoginDto loginDto);
         string GenerateToken(User user);
     }

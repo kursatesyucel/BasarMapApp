@@ -126,13 +126,19 @@ export interface AuthState {
 }
 
 export interface LoginRequest {
-  username: string;
+  loginIdentifier: string; // Username or Email
   password: string;
 }
 
 export interface RegisterRequest {
   username: string;
+  email: string;
   password: string;
+}
+
+export interface VerifyEmailRequest {
+  email: string;
+  code: string;
 }
 
 export interface AuthResponse {

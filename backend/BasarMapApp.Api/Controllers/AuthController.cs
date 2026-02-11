@@ -21,20 +21,37 @@ namespace BasarMapApp.Api.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Register([FromBody] UserRegisterDto registerDto)
+        public async Task<ActionResult<ApiResponse<string>>> Register([FromBody] UserRegisterDto registerDto)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(ApiResponse<AuthResponseDto>.FailureResult("Invalid input data"));
+                return BadRequest(ApiResponse<string>.FailureResult("Invalid input data"));
             }
 
-            var result = await _authService.RegisterAsync(registerDto);
-            if (result == null)
+            var (success, message) = await _authService.RegisterAsync(registerDto);
+            if (!success)
             {
-                return Conflict(ApiResponse<AuthResponseDto>.FailureResult("Username already exists"));
+                return Conflict(ApiResponse<string>.FailureResult(message ?? "Registration failed"));
             }
 
-            return Ok(ApiResponse<AuthResponseDto>.SuccessResult(result, "User registered successfully"));
+            return Ok(ApiResponse<string>.SuccessResult(message ?? "Registration successful", message ?? "Registration successful"));
+        }
+
+        [HttpPost("verify-email")]
+        public async Task<ActionResult<ApiResponse<string>>> VerifyEmail([FromBody] VerifyCodeDto verifyDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ApiResponse<string>.FailureResult("Invalid input data"));
+            }
+
+            var (success, message) = await _authService.VerifyEmailAsync(verifyDto);
+            if (!success)
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(message ?? "Verification failed"));
+            }
+
+            return Ok(ApiResponse<string>.SuccessResult(message ?? "Verification successful", message ?? "Verification successful"));
         }
 
         [HttpPost("login")]
@@ -48,7 +65,7 @@ namespace BasarMapApp.Api.Controllers
             var result = await _authService.LoginAsync(loginDto);
             if (result == null)
             {
-                return Unauthorized(ApiResponse<AuthResponseDto>.FailureResult("Invalid username or password"));
+                return Unauthorized(ApiResponse<AuthResponseDto>.FailureResult("Invalid credentials or email not verified"));
             }
 
             return Ok(ApiResponse<AuthResponseDto>.SuccessResult(result, "Login successful"));

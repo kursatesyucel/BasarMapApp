@@ -15,16 +15,23 @@ namespace BasarMapApp.Api.Data
                 var adminUser = new User
                 {
                     Username = "admin",
+                    Email = "admin@basarmapapp.com",
                     // Password: Admin123!
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
                     Role = "Admin",
+                    IsEmailConfirmed = true, // Admin is pre-verified
+                    VerificationCode = null,
                     CreatedAt = DateTime.UtcNow
                 };
 
                 context.Users.Add(adminUser);
                 await context.SaveChangesAsync();
                 
-                Console.WriteLine("✓ Admin user seeded successfully (Username: admin, Password: Admin123!)");
+                Console.WriteLine("✓ Admin user seeded successfully");
+                Console.WriteLine("  Username: admin");
+                Console.WriteLine("  Email: admin@basarmapapp.com");
+                Console.WriteLine("  Password: Admin123!");
+                Console.WriteLine("  Email Verified: Yes");
             }
         }
     }
