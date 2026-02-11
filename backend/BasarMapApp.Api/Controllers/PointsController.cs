@@ -1,12 +1,14 @@
 using BasarMapApp.Api.DTOs.Point;
 using BasarMapApp.Api.Responses;
 using BasarMapApp.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BasarMapApp.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "User,Manager,Admin")]
     public class PointsController : ControllerBase
     {
         private readonly IPointService _pointService;

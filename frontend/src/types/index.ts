@@ -107,4 +107,47 @@ export type FeatureType = 'point' | 'line' | 'polygon' | 'camera';
 export interface SelectedFeature {
   type: FeatureType;
   data: Point | Line | Polygon | Camera;
+}
+
+// Auth Types
+export type UserRole = 'User' | 'Manager' | 'Admin';
+
+export interface User {
+  username: string;
+  role: UserRole;
+}
+
+export interface AuthState {
+  token: string | null;
+  user: User | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+  error: string | null;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  username: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  username: string;
+  role: string;
+}
+
+export interface UserListItem {
+  id: number;
+  username: string;
+  role: string;
+  createdAt: string;
+}
+
+export interface UpdateUserRoleRequest {
+  role: string;
 } 

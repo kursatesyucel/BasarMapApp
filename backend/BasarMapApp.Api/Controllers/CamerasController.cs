@@ -1,12 +1,14 @@
 using BasarMapApp.Api.DTOs.Camera;
 using BasarMapApp.Api.Responses;
 using BasarMapApp.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BasarMapApp.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")]
     public class CamerasController : ControllerBase
     {
         private readonly ICameraService _cameraService;

@@ -1,12 +1,14 @@
 using BasarMapApp.Api.DTOs.Line;
 using BasarMapApp.Api.Responses;
 using BasarMapApp.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BasarMapApp.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Manager,Admin")]
     public class LinesController : ControllerBase
     {
         private readonly ILineService _lineService;
