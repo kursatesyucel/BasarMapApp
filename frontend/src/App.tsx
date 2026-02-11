@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Login from './components/Login';
 import Register from './components/Register';
+import EmailVerification from './components/EmailVerification';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminPanel from './components/AdminPanel';
 import Header from './components/Header';
@@ -19,6 +20,7 @@ function App() {
       {/* Public routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/verify-email" element={<EmailVerification />} />
 
       {/* Protected routes - Main Map View */}
       <Route

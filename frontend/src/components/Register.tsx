@@ -1,37 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { authService } from '../services/authService';
 
 const Register: React.FC = () => {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [validationError, setValidationError] = useState('');
-  const { register, loading, error, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
-    }
-  }, [isAuthenticated, navigate]);
 
   // Clear errors when component unmounts
   useEffect(() => {
     return () => {
-      clearError();
+      setError('');
       setValidationError('');
     };
-  }, [clearError]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError('');
+    setError('');
 
     // Validation
     if (username.length < 3) {
       setValidationError('Username must be at least 3 characters long');
+      return;
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setValidationError('Please enter a valid email address');
       return;
     }
 
@@ -45,9 +46,17 @@ const Register: React.FC = () => {
       return;
     }
 
-    const success = await register({ username, password });
-    if (success) {
-      navigate('/');
+    try {
+      setLoading(true);
+      await authService.register({ username, email, password });
+      
+      // Redirect to verification page with email
+      navigate('/verify-email', { state: { email } });
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,6 +85,21 @@ const Register: React.FC = () => {
               placeholder="Choose a username (min 3 characters)"
               autoComplete="username"
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              placeholder="your.email@example.com"
+              autoComplete="email"
+            />
+            <small className="input-hint">We'll send a verification code to this email</small>
           </div>
 
           <div className="form-group">

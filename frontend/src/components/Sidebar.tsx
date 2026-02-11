@@ -268,31 +268,66 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-          <button 
-            className="edit-button" 
-            onClick={() => handleEdit()}
-            style={{
-              background: '#28a745',
-              color: 'white',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              flex: 1
-            }}
-          >
-            Edit {type}
-          </button>
-          <button 
-            className="delete-button" 
-            onClick={handleDelete}
-            style={{ flex: 1 }}
-          >
-            Delete {type}
-          </button>
-        </div>
+        {/* Edit/Delete buttons - Role-based permissions */}
+        {(() => {
+          // Check if user has permission to edit/delete this feature type
+          let canEdit = false;
+          
+          if (type === 'point') {
+            // User, Manager, Admin can edit points
+            canEdit = hasRole(['User', 'Manager', 'Admin']);
+          } else if (type === 'line') {
+            // Only Manager and Admin can edit lines
+            canEdit = hasRole(['Manager', 'Admin']);
+          } else if (type === 'polygon' || type === 'camera') {
+            // Only Admin can edit polygons and cameras
+            canEdit = hasRole(['Admin']);
+          }
+
+          if (!canEdit) {
+            return (
+              <div style={{ 
+                marginTop: '1rem', 
+                padding: '0.75rem', 
+                background: '#f8f9fa', 
+                borderRadius: '4px',
+                textAlign: 'center',
+                fontSize: '0.875rem',
+                color: '#6c757d'
+              }}>
+                🔒 You don't have permission to edit or delete this {type}
+              </div>
+            );
+          }
+
+          return (
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <button 
+                className="edit-button" 
+                onClick={() => handleEdit()}
+                style={{
+                  background: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  flex: 1
+                }}
+              >
+                Edit {type}
+              </button>
+              <button 
+                className="delete-button" 
+                onClick={handleDelete}
+                style={{ flex: 1 }}
+              >
+                Delete {type}
+              </button>
+            </div>
+          );
+        })()}
       </div>
     );
   };
@@ -321,7 +356,7 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
       <div className="sidebar-content">
         {error && <div className="error">{error}</div>}
 
-        {/* Points - All users can see */}
+        {/* Points - All users can see and interact */}
         <div className="feature-list">
           <h3>Points ({points.length})</h3>
           {points.map(point => 
@@ -333,47 +368,41 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
           )}
         </div>
 
-        {/* Lines - Manager and Admin only */}
-        {hasRole(['Manager', 'Admin']) && (
-          <div className="feature-list">
-            <h3>Lines ({lines.length})</h3>
-            {lines.map(line => 
-              renderFeatureItem(
-                'line',
-                line,
-                `${formatDistance(calculateLineLength(line.coordinates))} - ${line.coordinates.length} points`
-              )
-            )}
-          </div>
-        )}
+        {/* Lines - All users can see, but only Manager/Admin can create/edit */}
+        <div className="feature-list">
+          <h3>Lines ({lines.length})</h3>
+          {lines.map(line => 
+            renderFeatureItem(
+              'line',
+              line,
+              `${formatDistance(calculateLineLength(line.coordinates))} - ${line.coordinates.length} points`
+            )
+          )}
+        </div>
 
-        {/* Polygons - Admin only */}
-        {hasRole(['Admin']) && (
-          <div className="feature-list">
-            <h3>Polygons ({polygons.length})</h3>
-            {polygons.map(polygon => 
-              renderFeatureItem(
-                'polygon',
-                polygon,
-                `${formatArea(calculatePolygonArea(polygon.coordinates))} - ${polygon.coordinates[0]?.length || 0} vertices`
-              )
-            )}
-          </div>
-        )}
+        {/* Polygons - All users can see, but only Admin can create/edit */}
+        <div className="feature-list">
+          <h3>Polygons ({polygons.length})</h3>
+          {polygons.map(polygon => 
+            renderFeatureItem(
+              'polygon',
+              polygon,
+              `${formatArea(calculatePolygonArea(polygon.coordinates))} - ${polygon.coordinates[0]?.length || 0} vertices`
+            )
+          )}
+        </div>
 
-        {/* Cameras - Admin only */}
-        {hasRole(['Admin']) && (
-          <div className="feature-list">
-            <h3>Cameras ({cameras.length})</h3>
-            {cameras.map(camera => 
-              renderFeatureItem(
-                'camera',
-                camera,
-                `${camera.videoFileName} - ${camera.isActive ? '🟢 Active' : '🔴 Inactive'}`
-              )
-            )}
-          </div>
-        )}
+        {/* Cameras - All users can see, but only Admin can create/edit */}
+        <div className="feature-list">
+          <h3>Cameras ({cameras.length})</h3>
+          {cameras.map(camera => 
+            renderFeatureItem(
+              'camera',
+              camera,
+              `${camera.videoFileName} - ${camera.isActive ? '🟢 Active' : '🔴 Inactive'}`
+            )
+          )}
+        </div>
 
         {renderSelectedFeatureDetails()}
       </div>

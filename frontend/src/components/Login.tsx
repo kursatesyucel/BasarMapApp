@@ -1,30 +1,68 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const { login, loading, error, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for success message from navigation state (from email verification)
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.message) {
+      setSuccessMessage(state.message);
+      // Clear the state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      // Check for redirect parameter in URL (from 401 interceptor)
+      const searchParams = new URLSearchParams(location.search);
+      const redirectPath = searchParams.get('redirect');
+      
+      if (redirectPath) {
+        // Kullanıcıyı 401 öncesi bulunduğu sayfaya yönlendir
+        navigate(redirectPath);
+      } else {
+        // Normal akış - ana sayfaya yönlendir
+        navigate('/');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, location.search]);
 
-  // Clear error when component unmounts
+  // Clear messages when component unmounts
   useEffect(() => {
-    return () => clearError();
+    return () => {
+      clearError();
+      setSuccessMessage('');
+    };
   }, [clearError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login({ username, password });
+    setSuccessMessage('');
+    
+    const success = await login({ loginIdentifier, password });
+    
     if (success) {
-      navigate('/');
+      // Check for redirect parameter in URL (from 401 interceptor)
+      const searchParams = new URLSearchParams(location.search);
+      const redirectPath = searchParams.get('redirect');
+      
+      if (redirectPath) {
+        // Kullanıcıyı 401 öncesi bulunduğu sayfaya yönlendir
+        navigate(redirectPath);
+      } else {
+        // Normal akış - ana sayfaya yönlendir
+        navigate('/');
+      }
     }
   };
 
@@ -32,6 +70,12 @@ const Login: React.FC = () => {
     <div className="auth-container">
       <div className="auth-card">
         <h2 className="auth-title">Login to BasarMapApp</h2>
+        
+        {successMessage && (
+          <div className="auth-success">
+            {successMessage}
+          </div>
+        )}
         
         {error && (
           <div className="auth-error">
@@ -41,17 +85,18 @@ const Login: React.FC = () => {
         
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="loginIdentifier">Username or Email</label>
             <input
-              id="username"
+              id="loginIdentifier"
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={loginIdentifier}
+              onChange={(e) => setLoginIdentifier(e.target.value)}
               required
               disabled={loading}
-              placeholder="Enter your username"
+              placeholder="Enter your username or email"
               autoComplete="username"
             />
+            <small className="input-hint">You can login with either username or email</small>
           </div>
 
           <div className="form-group">
