@@ -8,7 +8,7 @@ namespace BasarMapApp.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // All authenticated users can view
     public class CamerasController : ControllerBase
     {
         private readonly ICameraService _cameraService;
@@ -89,11 +89,12 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
-        /// Create a new camera
+        /// Create a new camera - Admin only
         /// </summary>
         /// <param name="createCameraDto">Camera creation data</param>
         /// <returns>Created camera</returns>
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<CameraDto>>> CreateCamera([FromBody] CreateCameraDto createCameraDto)
         {
             if (!ModelState.IsValid)
@@ -124,12 +125,13 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
-        /// Update an existing camera
+        /// Update an existing camera - Admin only
         /// </summary>
         /// <param name="id">Camera ID</param>
         /// <param name="updateCameraDto">Camera update data</param>
         /// <returns>Updated camera</returns>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<CameraDto>>> UpdateCamera(int id, [FromBody] UpdateCameraDto updateCameraDto)
         {
             if (!ModelState.IsValid)
@@ -159,11 +161,12 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
-        /// Delete a camera
+        /// Delete a camera - Admin only
         /// </summary>
         /// <param name="id">Camera ID</param>
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<bool>>> DeleteCamera(int id)
         {
             var result = await _cameraService.DeleteAsync(id);

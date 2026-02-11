@@ -8,7 +8,7 @@ namespace BasarMapApp.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Manager,Admin")]
+    [Authorize] // All authenticated users can view
     public class LinesController : ControllerBase
     {
         private readonly ILineService _lineService;
@@ -53,11 +53,12 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
-        /// Create a new line
+        /// Create a new line - Manager and Admin only
         /// </summary>
         /// <param name="createLineDto">Line creation data</param>
         /// <returns>Created line</returns>
         [HttpPost]
+        [Authorize(Roles = "Manager,Admin")]
         public async Task<ActionResult<ApiResponse<LineDto>>> CreateLine([FromBody] CreateLineDto createLineDto)
         {
             if (!ModelState.IsValid)
@@ -88,12 +89,13 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
-        /// Update an existing line
+        /// Update an existing line - Manager and Admin only
         /// </summary>
         /// <param name="id">Line ID</param>
         /// <param name="updateLineDto">Line update data</param>
         /// <returns>Updated line</returns>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Manager,Admin")]
         public async Task<ActionResult<ApiResponse<LineDto>>> UpdateLine(int id, [FromBody] UpdateLineDto updateLineDto)
         {
             if (!ModelState.IsValid)
@@ -123,11 +125,12 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
-        /// Delete a line
+        /// Delete a line - Manager and Admin only
         /// </summary>
         /// <param name="id">Line ID</param>
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Manager,Admin")]
         public async Task<ActionResult<ApiResponse<bool>>> DeleteLine(int id)
         {
             var result = await _lineService.DeleteAsync(id);

@@ -8,7 +8,7 @@ namespace BasarMapApp.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // All authenticated users can view
     public class PolygonsController : ControllerBase
     {
         private readonly IPolygonService _polygonService;
@@ -53,11 +53,12 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
-        /// Create a new polygon
+        /// Create a new polygon - Admin only
         /// </summary>
         /// <param name="createPolygonDto">Polygon creation data</param>
         /// <returns>Created polygon</returns>
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<PolygonDto>>> CreatePolygon([FromBody] CreatePolygonDto createPolygonDto)
         {
             if (!ModelState.IsValid)
@@ -88,11 +89,12 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
-        /// Create a new polygon with intersection handling (removes overlaps with existing polygons)
+        /// Create a new polygon with intersection handling (removes overlaps with existing polygons) - Admin only
         /// </summary>
         /// <param name="createPolygonDto">Polygon creation data</param>
         /// <returns>Created polygon with intersections removed</returns>
         [HttpPost("create-with-intersection-handling")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<PolygonDto>>> CreatePolygonWithIntersectionHandling([FromBody] CreatePolygonDto createPolygonDto)
         {
             if (!ModelState.IsValid)
@@ -123,12 +125,13 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
-        /// Update an existing polygon
+        /// Update an existing polygon - Admin only
         /// </summary>
         /// <param name="id">Polygon ID</param>
         /// <param name="updatePolygonDto">Polygon update data</param>
         /// <returns>Updated polygon</returns>
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<PolygonDto>>> UpdatePolygon(int id, [FromBody] UpdatePolygonDto updatePolygonDto)
         {
             if (!ModelState.IsValid)
@@ -158,11 +161,12 @@ namespace BasarMapApp.Api.Controllers
         }
 
         /// <summary>
-        /// Delete a polygon
+        /// Delete a polygon - Admin only
         /// </summary>
         /// <param name="id">Polygon ID</param>
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<bool>>> DeletePolygon(int id)
         {
             var result = await _polygonService.DeleteAsync(id);
