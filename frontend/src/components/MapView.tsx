@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet-draw';
 import { UseMapFeaturesReturn } from '../hooks/useMapFeatures';
+import { useAuth } from '../hooks/useAuth';
 import { pointService } from '../services/pointService';
 import { lineService } from '../services/lineService';
 import { polygonService } from '../services/polygonService';
@@ -56,6 +57,9 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
   } | null>(null);
   const editableLayersRef = useRef<L.FeatureGroup | null>(null);
 
+  // Auth
+  const { user, hasRole } = useAuth();
+
   // Form state
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'point' | 'line' | 'polygon' | 'camera'>('point');
@@ -105,15 +109,21 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
     map.addLayer(editableLayers);
     editableLayersRef.current = editableLayers;
 
-    // Initialize draw controls
+    // Initialize draw controls based on user role
+    // User: Only points
+    // Manager: Points and lines
+    // Admin: All features
+    const canDrawLines = hasRole(['Manager', 'Admin']);
+    const canDrawPolygons = hasRole(['Admin']);
+    
     const drawControl = new L.Control.Draw({
       position: 'topright',
       draw: {
         marker: {
           icon: L.Icon.Default.prototype // Normal point marker
         },
-        polyline: {},
-        polygon: {},
+        polyline: canDrawLines ? {} : false,
+        polygon: canDrawPolygons ? {} : false,
         rectangle: false,
         circle: false,
         circlemarker: false
@@ -192,8 +202,12 @@ const MapView: React.FC<MapViewProps> = ({ mapFeatures }) => {
       }
     });
 
-    const cameraControl = new CameraControl();
-    map.addControl(cameraControl);
+    // Only add camera control for Admin users
+    const canAddCameras = hasRole(['Admin']);
+    if (canAddCameras) {
+      const cameraControl = new CameraControl();
+      map.addControl(cameraControl);
+    }
 
     map.addControl(drawControl);
 

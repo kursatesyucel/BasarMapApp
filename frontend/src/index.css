@@ -519,10 +519,17 @@ body {
 }
 
 /* Admin Panel Styles */
+.admin-panel-container {
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  background: #f8f9fa;
+}
+
 .admin-panel {
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
+  min-height: 100%;
 }
 
 .admin-header {
@@ -801,6 +808,10 @@ body {
 
   .username {
     display: none;
+  }
+
+  .admin-panel-container {
+    height: calc(100vh - 60px);
   }
 
   .admin-panel {

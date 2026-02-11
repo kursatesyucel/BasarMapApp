@@ -60,8 +60,9 @@ const AdminPanel: React.FC = () => {
   }
 
   return (
-    <div className="admin-panel">
-      <div className="admin-header">
+    <div className="admin-panel-container">
+      <div className="admin-panel">
+        <div className="admin-header">
         <h1>User Management</h1>
         <div className="admin-actions">
           <button onClick={() => navigate('/')} className="back-to-map-button">
@@ -166,6 +167,7 @@ const AdminPanel: React.FC = () => {
           <div className="stat-value">{users.filter(u => u.role === 'User').length}</div>
           <div className="stat-label">Users</div>
         </div>
+      </div>
       </div>
     </div>
   );

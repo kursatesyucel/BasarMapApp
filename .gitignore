@@ -641,3 +641,4 @@ backend/BasarMapApp.Api/wwwroot/videos/
 # Allow sample/demo videos (uncomment if needed)
 # !sample*.mp4
 # !demo*.mp4 
+ROLE_BASED_UI_UPDATE.md

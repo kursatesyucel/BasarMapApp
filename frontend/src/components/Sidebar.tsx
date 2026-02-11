@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UseMapFeaturesReturn } from '../hooks/useMapFeatures';
+import { useAuth } from '../hooks/useAuth';
 import { Point, Line, Polygon, Camera, UpdatePointDto, UpdateLineDto, UpdatePolygonDto, UpdateCameraDto } from '../types';
 import { calculateLineLength, calculatePolygonArea, formatDistance, formatArea } from '../utils/geometryUtils';
 import { pointService } from '../services/pointService';
@@ -25,6 +26,8 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
     deleteSelectedFeature,
     refreshAll
   } = mapFeatures;
+
+  const { hasRole } = useAuth();
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingFeature, setEditingFeature] = useState<{
@@ -318,6 +321,7 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
       <div className="sidebar-content">
         {error && <div className="error">{error}</div>}
 
+        {/* Points - All users can see */}
         <div className="feature-list">
           <h3>Points ({points.length})</h3>
           {points.map(point => 
@@ -329,38 +333,47 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
           )}
         </div>
 
-        <div className="feature-list">
-          <h3>Lines ({lines.length})</h3>
-          {lines.map(line => 
-            renderFeatureItem(
-              'line',
-              line,
-              `${formatDistance(calculateLineLength(line.coordinates))} - ${line.coordinates.length} points`
-            )
-          )}
-        </div>
+        {/* Lines - Manager and Admin only */}
+        {hasRole(['Manager', 'Admin']) && (
+          <div className="feature-list">
+            <h3>Lines ({lines.length})</h3>
+            {lines.map(line => 
+              renderFeatureItem(
+                'line',
+                line,
+                `${formatDistance(calculateLineLength(line.coordinates))} - ${line.coordinates.length} points`
+              )
+            )}
+          </div>
+        )}
 
-        <div className="feature-list">
-          <h3>Polygons ({polygons.length})</h3>
-          {polygons.map(polygon => 
-            renderFeatureItem(
-              'polygon',
-              polygon,
-              `${formatArea(calculatePolygonArea(polygon.coordinates))} - ${polygon.coordinates[0]?.length || 0} vertices`
-            )
-          )}
-        </div>
+        {/* Polygons - Admin only */}
+        {hasRole(['Admin']) && (
+          <div className="feature-list">
+            <h3>Polygons ({polygons.length})</h3>
+            {polygons.map(polygon => 
+              renderFeatureItem(
+                'polygon',
+                polygon,
+                `${formatArea(calculatePolygonArea(polygon.coordinates))} - ${polygon.coordinates[0]?.length || 0} vertices`
+              )
+            )}
+          </div>
+        )}
 
-        <div className="feature-list">
-          <h3>Cameras ({cameras.length})</h3>
-          {cameras.map(camera => 
-            renderFeatureItem(
-              'camera',
-              camera,
-              `${camera.videoFileName} - ${camera.isActive ? '🟢 Active' : '🔴 Inactive'}`
-            )
-          )}
-        </div>
+        {/* Cameras - Admin only */}
+        {hasRole(['Admin']) && (
+          <div className="feature-list">
+            <h3>Cameras ({cameras.length})</h3>
+            {cameras.map(camera => 
+              renderFeatureItem(
+                'camera',
+                camera,
+                `${camera.videoFileName} - ${camera.isActive ? '🟢 Active' : '🔴 Inactive'}`
+              )
+            )}
+          </div>
+        )}
 
         {renderSelectedFeatureDetails()}
       </div>
