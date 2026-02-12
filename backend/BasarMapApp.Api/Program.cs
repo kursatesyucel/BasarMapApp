@@ -54,6 +54,11 @@ builder.Services.AddScoped<IPolygonRepository, PolygonRepository>();
 builder.Services.AddScoped<ICameraRepository, CameraRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
+// Register GIS Boundary repositories (Read-Only)
+builder.Services.AddScoped<IProvinceRepository, ProvinceRepository>();
+builder.Services.AddScoped<IDistrictRepository, DistrictRepository>();
+builder.Services.AddScoped<ISettlementRepository, SettlementRepository>();
+
 // Register services
 builder.Services.AddScoped<IPointService, PointService>();
 builder.Services.AddScoped<ILineService, LineService>();
@@ -61,6 +66,9 @@ builder.Services.AddScoped<IPolygonService, PolygonService>();
 builder.Services.AddScoped<ICameraService, CameraService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMailService, GmailMailService>();
+
+// Register GIS Boundary service (Read-Only)
+builder.Services.AddScoped<IBoundaryService, BoundaryService>();
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];

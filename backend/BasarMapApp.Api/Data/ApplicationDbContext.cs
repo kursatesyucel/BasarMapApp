@@ -16,6 +16,11 @@ namespace BasarMapApp.Api.Data
         public DbSet<MapPolygon> Polygons { get; set; }
         public DbSet<Camera> Cameras { get; set; }
         public DbSet<User> Users { get; set; }
+        
+        // GIS Referans Verileri (Read-Only)
+        public DbSet<Province> Provinces { get; set; }
+        public DbSet<District> Districts { get; set; }
+        public DbSet<Settlement> Settlements { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -156,6 +161,79 @@ namespace BasarMapApp.Api.Data
                 
                 entity.Property(e => e.CreatedAt)
                     .IsRequired();
+            });
+
+            // ============= GIS Referans Verileri Konfigürasyonları =============
+
+            // Province (İl Sınırları) configuration
+            builder.Entity<Province>(entity =>
+            {
+                entity.ToTable("ref_provinces");
+                entity.HasKey(e => e.Id);
+                
+                entity.Property(e => e.Id)
+                    .HasColumnName("ogc_fid");
+                
+                entity.Property(e => e.DetailName)
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnName("detay_adı");  // Türkçe karakter - her zaman "İL_SINIRI"
+                
+                entity.Property(e => e.Geom)
+                    .IsRequired()
+                    .HasColumnName("geom")
+                    .HasColumnType("geometry");
+                
+                // Navigation Property YOK - bağımsız tablo
+            });
+
+            // District (İlçe Sınırları) configuration
+            builder.Entity<District>(entity =>
+            {
+                entity.ToTable("ref_districts");
+                entity.HasKey(e => e.Id);
+                
+                entity.Property(e => e.Id)
+                    .HasColumnName("ogc_fid");
+                
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnName("detay_adı");  // Türkçe karakter
+                
+                entity.Property(e => e.Geom)
+                    .IsRequired()
+                    .HasColumnName("geom")
+                    .HasColumnType("geometry");
+                
+                // Navigation Property YOK - bağımsız tablo
+            });
+
+            // Settlement (Yerleşim Merkezi) configuration
+            builder.Entity<Settlement>(entity =>
+            {
+                entity.ToTable("ref_settlements");
+                entity.HasKey(e => e.Id);
+                
+                entity.Property(e => e.Id)
+                    .HasColumnName("ogc_fid");
+                
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .HasColumnName("adı");  // Türkçe karakter
+                
+                entity.Property(e => e.Category)
+                    .IsRequired()
+                    .HasMaxLength(50)
+                    .HasColumnName("kategori");  // BAŞKENT, İL, İLÇE
+                
+                entity.Property(e => e.Geom)
+                    .IsRequired()
+                    .HasColumnName("geom")
+                    .HasColumnType("geometry(Point,4326)");
+                
+                // Navigation Property YOK - bağımsız tablo
             });
         }
     }
