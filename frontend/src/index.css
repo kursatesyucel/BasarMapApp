@@ -866,6 +866,132 @@ body {
   line-height: 1.6;
 }
 
+/* Admin Panel - User Management Styles */
+.admin-success {
+  background-color: #c6f6d5;
+  color: #22543d;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  border: 1px solid #9ae6b4;
+}
+
+.user-email {
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.status-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.status-active {
+  background-color: #c6f6d5;
+  color: #22543d;
+}
+
+.status-inactive {
+  background-color: #fed7d7;
+  color: #742a2a;
+}
+
+.toggle-status-button {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.toggle-status-button.deactivate {
+  background-color: #fc8181;
+  color: white;
+}
+
+.toggle-status-button.deactivate:hover:not(:disabled) {
+  background-color: #e53e3e;
+}
+
+.toggle-status-button.activate {
+  background-color: #68d391;
+  color: white;
+}
+
+.toggle-status-button.activate:hover:not(:disabled) {
+  background-color: #38a169;
+}
+
+.toggle-status-button:disabled {
+  background-color: #cbd5e0;
+  color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.verification-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.verification-badge.verified {
+  background-color: #bee3f8;
+  color: #2c5282;
+}
+
+.verification-badge.unverified {
+  background-color: #feebc8;
+  color: #7c2d12;
+}
+
+.delete-user-button {
+  padding: 6px 12px;
+  background-color: #f56565;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.delete-user-button:hover:not(:disabled) {
+  background-color: #e53e3e;
+  transform: scale(1.05);
+}
+
+.delete-user-button:disabled {
+  background-color: #cbd5e0;
+  color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.inactive-user-row {
+  background-color: #f7fafc;
+  opacity: 0.7;
+}
+
+.inactive-user-row td {
+  color: #718096;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .app-container {

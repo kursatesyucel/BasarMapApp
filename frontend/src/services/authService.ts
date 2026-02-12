@@ -1,5 +1,5 @@
 import { api } from './api';
-import { LoginRequest, RegisterRequest, VerifyEmailRequest, AuthResponse, UserListItem, UpdateUserRoleRequest } from '../types';
+import { LoginRequest, RegisterRequest, VerifyEmailRequest, AuthResponse, UserListItem, UpdateUserRoleRequest, UpdateUserStatusRequest } from '../types';
 
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
@@ -25,6 +25,16 @@ export const authService = {
   async updateUserRole(userId: number, roleData: UpdateUserRoleRequest): Promise<UserListItem> {
     const response = await api.put(`/auth/users/${userId}/role`, roleData);
     return response.data.data;
+  },
+
+  async updateUserStatus(userId: number, statusData: UpdateUserStatusRequest): Promise<string> {
+    const response = await api.put(`/auth/users/${userId}/status`, statusData);
+    return response.data.message;
+  },
+
+  async deleteUser(userId: number): Promise<string> {
+    const response = await api.delete(`/auth/users/${userId}`);
+    return response.data.message;
   },
 
   // Local storage operations

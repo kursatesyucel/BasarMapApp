@@ -133,6 +133,13 @@ namespace BasarMapApp.Api.Services.Implementations
                     return null;
                 }
 
+                // Check if user is active
+                if (!user.IsActive)
+                {
+                    _logger.LogWarning("Login attempt with inactive account: {Username}", user.Username);
+                    return null;
+                }
+
                 // Verify password
                 if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
                     return null;
@@ -186,6 +193,77 @@ namespace BasarMapApp.Api.Services.Implementations
         {
             var random = new Random();
             return random.Next(100000, 999999).ToString();
+        }
+
+        // Admin user management methods
+        public async Task<IEnumerable<UserListDto>> GetAllUsersAsync()
+        {
+            var users = await _userRepository.GetAllAsync();
+            return users.Select(u => new UserListDto
+            {
+                Id = u.Id,
+                Username = u.Username,
+                Email = u.Email,
+                Role = u.Role,
+                IsEmailConfirmed = u.IsEmailConfirmed,
+                IsActive = u.IsActive,
+                CreatedAt = u.CreatedAt
+            });
+        }
+
+        public async Task<(bool Success, string? Message)> UpdateUserStatusAsync(int userId, bool isActive, int adminId)
+        {
+            try
+            {
+                // Prevent admin from deactivating themselves
+                if (userId == adminId)
+                    return (false, "You cannot change your own account status");
+
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null)
+                    return (false, "User not found");
+
+                var updatedUser = await _userRepository.UpdateStatusAsync(userId, isActive);
+                if (updatedUser == null)
+                    return (false, "Failed to update user status");
+
+                var status = isActive ? "activated" : "deactivated";
+                _logger.LogInformation("User {UserId} was {Status} by admin {AdminId}", userId, status, adminId);
+
+                return (true, $"User successfully {status}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user status");
+                return (false, "An error occurred while updating user status");
+            }
+        }
+
+        public async Task<(bool Success, string? Message)> DeleteUserAsync(int userId, int adminId)
+        {
+            try
+            {
+                // Prevent admin from deleting themselves
+                if (userId == adminId)
+                    return (false, "You cannot delete your own account");
+
+                var user = await _userRepository.GetByIdAsync(userId);
+                if (user == null)
+                    return (false, "User not found");
+
+                var deleted = await _userRepository.DeleteAsync(userId);
+                if (!deleted)
+                    return (false, "Failed to delete user");
+
+                _logger.LogInformation("User {UserId} was deleted by admin {AdminId}", userId, adminId);
+
+                return (true, "User successfully deleted");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting user");
+                return (false, "An error occurred while deleting user");
+            }
         }
     }
 }

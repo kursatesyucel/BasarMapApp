@@ -68,5 +68,27 @@ namespace BasarMapApp.Api.Repositories.Implementations
         {
             return await _context.Users.FindAsync(id);
         }
+
+        public async Task<User?> UpdateStatusAsync(int id, bool isActive)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+                return null;
+
+            user.IsActive = isActive;
+            await _context.SaveChangesAsync();
+            return user;
+        }
+
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+                return false;
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

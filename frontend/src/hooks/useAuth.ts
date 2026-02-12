@@ -51,7 +51,26 @@ export function useAuth(): UseAuthReturn {
       
       return true;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      let errorMessage = 'Login failed. Please check your credentials.';
+      
+      // Check for specific error messages from backend
+      if (err.response?.data?.message) {
+        const backendMessage = err.response.data.message;
+        
+        // Check for inactive account
+        if (backendMessage.toLowerCase().includes('inactive')) {
+          errorMessage = '⚠️ Hesabınız şu anda pasif durumdadır. Lütfen sistem yöneticisi ile iletişime geçin.';
+        } 
+        // Check for email not verified
+        else if (backendMessage.toLowerCase().includes('not verified')) {
+          errorMessage = 'Email adresiniz doğrulanmamış. Lütfen email\'inizi kontrol edin.';
+        }
+        // Use backend message for other errors
+        else {
+          errorMessage = backendMessage;
+        }
+      }
+      
       setError(errorMessage);
       return false;
     } finally {

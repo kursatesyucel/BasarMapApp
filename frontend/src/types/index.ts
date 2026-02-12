@@ -150,10 +150,17 @@ export interface AuthResponse {
 export interface UserListItem {
   id: number;
   username: string;
+  email: string;
   role: string;
+  isEmailConfirmed: boolean;
+  isActive: boolean;
   createdAt: string;
 }
 
 export interface UpdateUserRoleRequest {
   role: string;
+}
+
+export interface UpdateUserStatusRequest {
+  isActive: boolean;
 } 

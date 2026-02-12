@@ -150,6 +150,10 @@ namespace BasarMapApp.Api.Data
                     .IsRequired()
                     .HasDefaultValue(false);
                 
+                entity.Property(e => e.IsActive)
+                    .IsRequired()
+                    .HasDefaultValue(true);
+                
                 entity.Property(e => e.CreatedAt)
                     .IsRequired();
             });

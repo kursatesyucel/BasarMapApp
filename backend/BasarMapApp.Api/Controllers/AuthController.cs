@@ -65,28 +65,26 @@ namespace BasarMapApp.Api.Controllers
             var result = await _authService.LoginAsync(loginDto);
             if (result == null)
             {
-                return Unauthorized(ApiResponse<AuthResponseDto>.FailureResult("Invalid credentials or email not verified"));
+                return Unauthorized(ApiResponse<AuthResponseDto>.FailureResult("Invalid credentials, email not verified, or account is inactive"));
             }
 
             return Ok(ApiResponse<AuthResponseDto>.SuccessResult(result, "Login successful"));
         }
 
+        /// <summary>
+        /// Get all users - Admin only
+        /// </summary>
         [HttpGet("users")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<IEnumerable<UserListDto>>>> GetAllUsers()
         {
-            var users = await _userRepository.GetAllAsync();
-            var userDtos = users.Select(u => new UserListDto
-            {
-                Id = u.Id,
-                Username = u.Username,
-                Role = u.Role,
-                CreatedAt = u.CreatedAt
-            });
-
-            return Ok(ApiResponse<IEnumerable<UserListDto>>.SuccessResult(userDtos, "Users retrieved successfully"));
+            var users = await _authService.GetAllUsersAsync();
+            return Ok(ApiResponse<IEnumerable<UserListDto>>.SuccessResult(users, "Users retrieved successfully"));
         }
 
+        /// <summary>
+        /// Update user role - Admin only
+        /// </summary>
         [HttpPut("users/{id}/role")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<UserListDto>>> UpdateUserRole(int id, [FromBody] UpdateUserRoleDto updateDto)
@@ -113,11 +111,71 @@ namespace BasarMapApp.Api.Controllers
             {
                 Id = user.Id,
                 Username = user.Username,
+                Email = user.Email,
                 Role = user.Role,
+                IsEmailConfirmed = user.IsEmailConfirmed,
+                IsActive = user.IsActive,
                 CreatedAt = user.CreatedAt
             };
 
             return Ok(ApiResponse<UserListDto>.SuccessResult(userDto, "User role updated successfully"));
+        }
+
+        /// <summary>
+        /// Update user status (active/inactive) - Admin only
+        /// </summary>
+        [HttpPut("users/{id}/status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<ApiResponse<string>>> UpdateUserStatus(int id, [FromBody] UpdateUserStatusDto updateDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ApiResponse<string>.FailureResult("Invalid input data"));
+            }
+
+            // Get current admin user ID from claims
+            var adminIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (adminIdClaim == null || !int.TryParse(adminIdClaim.Value, out int adminId))
+            {
+                return Unauthorized(ApiResponse<string>.FailureResult("Unable to identify admin user"));
+            }
+
+            var (success, message) = await _authService.UpdateUserStatusAsync(id, updateDto.IsActive, adminId);
+            if (!success)
+            {
+                if (message?.Contains("cannot change your own") == true)
+                    return BadRequest(ApiResponse<string>.FailureResult(message));
+                
+                return NotFound(ApiResponse<string>.FailureResult(message ?? "Failed to update user status"));
+            }
+
+            return Ok(ApiResponse<string>.SuccessResult(message ?? "User status updated", message ?? "User status updated"));
+        }
+
+        /// <summary>
+        /// Delete user - Admin only (WARNING: This permanently deletes the user from database)
+        /// </summary>
+        [HttpDelete("users/{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<ApiResponse<string>>> DeleteUser(int id)
+        {
+            // Get current admin user ID from claims
+            var adminIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (adminIdClaim == null || !int.TryParse(adminIdClaim.Value, out int adminId))
+            {
+                return Unauthorized(ApiResponse<string>.FailureResult("Unable to identify admin user"));
+            }
+
+            var (success, message) = await _authService.DeleteUserAsync(id, adminId);
+            if (!success)
+            {
+                if (message?.Contains("cannot delete your own") == true)
+                    return BadRequest(ApiResponse<string>.FailureResult(message));
+                
+                return NotFound(ApiResponse<string>.FailureResult(message ?? "Failed to delete user"));
+            }
+
+            return Ok(ApiResponse<string>.SuccessResult(message ?? "User deleted", message ?? "User deleted"));
         }
     }
 }

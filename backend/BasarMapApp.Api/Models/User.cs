@@ -26,6 +26,8 @@ namespace BasarMapApp.Api.Models
         
         public bool IsEmailConfirmed { get; set; } = false;
         
+        public bool IsActive { get; set; } = true;
+        
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
