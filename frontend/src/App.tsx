@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminPanel from './components/AdminPanel';
 import Header from './components/Header';
 import MapView from './components/MapView';
+import MapViewWithBoundaries from './components/MapViewWithBoundaries';
 import Sidebar from './components/Sidebar';
 import { useMapFeatures } from './hooks/useMapFeatures';
 
@@ -62,7 +63,7 @@ const MapViewWrapper: React.FC = () => {
       <Header />
       <div className="app-container">
         <div className="map-container">
-          <MapView mapFeatures={mapFeatures} />
+          <MapViewWithBoundaries mapFeatures={mapFeatures} />
         </div>
         <Sidebar mapFeatures={mapFeatures} />
       </div>
