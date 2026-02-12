@@ -11,7 +11,7 @@ import MapView from './components/MapView';
 import MapViewWithBoundaries from './components/MapViewWithBoundaries';
 import Sidebar from './components/Sidebar';
 import { useMapFeatures } from './hooks/useMapFeatures';
-
+ 
 function App() {
   const { isAuthenticated } = useAuth();
 
