@@ -49,17 +49,15 @@ api.interceptors.response.use(
       // Kullanıcıyı login sayfasına yönlendir
       const currentPath = window.location.pathname;
       
-      // Eğer zaten auth sayfalarında değilse, mevcut sayfayı redirect parametresi olarak kaydet
-      // Login sonrası kullanıcı kaldığı yere dönebilir
-      if (
-        currentPath !== '/login' && 
-        currentPath !== '/register' && 
-        currentPath !== '/verify-email'
-      ) {
-        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-      } else {
-        window.location.href = '/login';
+      // KRITIK: Eğer zaten login sayfasındaysak tekrar yönlendirme yapma (sonsuz döngü engelleme)
+      if (currentPath === '/login' || currentPath === '/register' || currentPath === '/verify-email') {
+        console.warn('401 hatası ama zaten auth sayfasındayız, yönlendirme yapılmıyor');
+        return Promise.reject(error);
       }
+      
+      // Eğer auth sayfalarında değilse, mevcut sayfayı redirect parametresi olarak kaydet
+      // Login sonrası kullanıcı kaldığı yere dönebilir
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
     }
     
     // 403 Forbidden - Yetkisiz erişim (kullanıcı login ama yetki yok)

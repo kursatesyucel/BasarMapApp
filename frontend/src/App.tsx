@@ -13,7 +13,6 @@ import { useMapFeatures } from './hooks/useMapFeatures';
 
 function App() {
   const { isAuthenticated } = useAuth();
-  const mapFeatures = useMapFeatures();
 
   return (
     <Routes>
@@ -27,15 +26,7 @@ function App() {
         path="/"
         element={
           <ProtectedRoute>
-            <div className="app-wrapper">
-              <Header />
-              <div className="app-container">
-                <div className="map-container">
-                  <MapView mapFeatures={mapFeatures} />
-                </div>
-                <Sidebar mapFeatures={mapFeatures} />
-              </div>
-            </div>
+            <MapViewWrapper />
           </ProtectedRoute>
         }
       />
@@ -61,5 +52,22 @@ function App() {
     </Routes>
   );
 }
+
+// Separate component to avoid useMapFeatures being called on every App render
+const MapViewWrapper: React.FC = () => {
+  const mapFeatures = useMapFeatures();
+  
+  return (
+    <div className="app-wrapper">
+      <Header />
+      <div className="app-container">
+        <div className="map-container">
+          <MapView mapFeatures={mapFeatures} />
+        </div>
+        <Sidebar mapFeatures={mapFeatures} />
+      </div>
+    </div>
+  );
+};
 
 export default App; 
