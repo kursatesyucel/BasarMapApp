@@ -18,7 +18,7 @@ export const pointService = {
       throw error;
     }
   },
-
+ 
   async create(point: CreatePointDto): Promise<Point> {
     const response = await api.post('/points', point);
     return response.data.data;
