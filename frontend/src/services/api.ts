@@ -50,7 +50,7 @@ api.interceptors.response.use(
       const currentPath = window.location.pathname;
       
       // KRITIK: Eğer zaten login sayfasındaysak tekrar yönlendirme yapma (sonsuz döngü engelleme)
-      if (currentPath === '/login' || currentPath === '/register' || currentPath === '/verify-email') {
+      if (currentPath === '/login' || currentPath === '/register' || currentPath === '/verify-email' || currentPath === '/forgot-password' || currentPath.startsWith('/reset-password')) {
         console.warn('401 hatası ama zaten auth sayfasındayız, yönlendirme yapılmıyor');
         return Promise.reject(error);
       }

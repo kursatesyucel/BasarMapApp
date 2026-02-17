@@ -111,6 +111,9 @@ const Login: React.FC = () => {
               placeholder="Enter your password"
               autoComplete="current-password"
             />
+            <div className="forgot-password-link">
+              <Link to="/forgot-password">Şifremi Unuttum</Link>
+            </div>
           </div>
 
           <button type="submit" disabled={loading} className="auth-button">

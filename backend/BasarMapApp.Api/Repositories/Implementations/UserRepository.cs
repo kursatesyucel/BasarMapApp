@@ -26,6 +26,12 @@ namespace BasarMapApp.Api.Repositories.Implementations
                 .FirstOrDefaultAsync(u => u.Email == email);
         }
 
+        public async Task<User?> GetByPasswordResetTokenAsync(string token)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.PasswordResetToken == token);
+        }
+
         public async Task<User?> GetByUsernameOrEmailAsync(string identifier)
         {
             return await _context.Users

@@ -354,6 +354,21 @@ body {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.forgot-password-link {
+  margin-top: 6px;
+  text-align: right;
+}
+
+.forgot-password-link a {
+  color: #667eea;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.forgot-password-link a:hover {
+  text-decoration: underline;
+}
+
 .auth-error {
   background: #fee;
   color: #c33;

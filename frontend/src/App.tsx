@@ -4,6 +4,8 @@ import { useAuth } from './hooks/useAuth';
 import Login from './components/Login';
 import Register from './components/Register';
 import EmailVerification from './components/EmailVerification';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminPanel from './components/AdminPanel';
 import LogsPage from './pages/admin/logs/LogsPage';
@@ -22,6 +24,8 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/verify-email" element={<EmailVerification />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Protected routes - Main Map View */}
       <Route

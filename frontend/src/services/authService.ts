@@ -1,5 +1,5 @@
 import { api } from './api';
-import { LoginRequest, RegisterRequest, VerifyEmailRequest, AuthResponse, UserListItem, UpdateUserRoleRequest, UpdateUserStatusRequest } from '../types';
+import { LoginRequest, RegisterRequest, VerifyEmailRequest, ForgotPasswordRequest, ResetPasswordRequest, AuthResponse, UserListItem, UpdateUserRoleRequest, UpdateUserStatusRequest } from '../types';
 
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
@@ -15,6 +15,16 @@ export const authService = {
   async verifyEmail(verifyData: VerifyEmailRequest): Promise<string> {
     const response = await api.post('/auth/verify-email', verifyData);
     return response.data.message; // Returns success message
+  },
+
+  async forgotPassword(data: ForgotPasswordRequest): Promise<string> {
+    const response = await api.post('/auth/forgot-password', data);
+    return response.data.message;
+  },
+
+  async resetPassword(data: ResetPasswordRequest): Promise<string> {
+    const response = await api.post('/auth/reset-password', data);
+    return response.data.message;
   },
 
   async getAllUsers(): Promise<UserListItem[]> {

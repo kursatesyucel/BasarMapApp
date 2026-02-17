@@ -8,6 +8,8 @@ namespace BasarMapApp.Api.Services.Interfaces
         Task<(bool Success, string? Message)> RegisterAsync(UserRegisterDto registerDto, HttpContext? httpContext = null);
         Task<(bool Success, string? Message)> VerifyEmailAsync(VerifyCodeDto verifyDto);
         Task<AuthResponseDto?> LoginAsync(UserLoginDto loginDto, HttpContext? httpContext = null);
+        Task<(bool Success, string Message)> ForgotPasswordAsync(ForgotPasswordDto model, HttpContext? httpContext = null);
+        Task<(bool Success, string Message)> ResetPasswordAsync(ResetPasswordDto model);
         string GenerateToken(User user);
         
         // Admin user management methods

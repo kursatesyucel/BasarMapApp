@@ -161,6 +161,123 @@ namespace BasarMapApp.Api.Services.Implementations
             }
         }
 
+        public async Task<(bool Success, string Message)> ForgotPasswordAsync(ForgotPasswordDto model, HttpContext? httpContext = null)
+        {
+            var ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString();
+
+            try
+            {
+                var user = await _userRepository.GetByEmailAsync(model.Email);
+
+                // Güvenlik gereği: Kullanıcı yoksa da başarılı dön (email enumeration engelleme)
+                if (user == null)
+                {
+                    await LogForgotPasswordRequestAsync(null, model.Email, ipAddress);
+                    return (true, "E-posta adresinize şifre sıfırlama linki gönderildi.");
+                }
+
+                var resetToken = Guid.NewGuid().ToString();
+                user.PasswordResetToken = resetToken;
+                user.PasswordResetTokenExpires = DateTime.UtcNow.AddMinutes(15);
+                await _userRepository.UpdateAsync(user);
+
+                var emailSent = await _mailService.SendPasswordResetLinkAsync(user.Email, resetToken);
+                if (!emailSent)
+                {
+                    _logger.LogWarning("Failed to send password reset email to {Email}", user.Email);
+                    return (false, "E-posta gönderilemedi. Lütfen daha sonra tekrar deneyin.");
+                }
+
+                await LogForgotPasswordRequestAsync(user.Id, user.Email, ipAddress);
+                return (true, "E-posta adresinize şifre sıfırlama linki gönderildi.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during forgot password for {Email}", model.Email);
+                return (false, "Bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+            }
+        }
+
+        public async Task<(bool Success, string Message)> ResetPasswordAsync(ResetPasswordDto model)
+        {
+            try
+            {
+                var user = await _userRepository.GetByPasswordResetTokenAsync(model.Token);
+                if (user == null)
+                    return (false, "Geçersiz veya süresi dolmuş sıfırlama linki.");
+
+                if (!user.PasswordResetTokenExpires.HasValue || user.PasswordResetTokenExpires.Value <= DateTime.UtcNow)
+                    return (false, "Sıfırlama linkinin süresi dolmuş. Lütfen yeni bir talep oluşturun.");
+
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+                user.PasswordResetToken = null;
+                user.PasswordResetTokenExpires = null;
+                user.AccessFailedCount = 0;
+                user.LockoutEnd = null;
+                await _userRepository.UpdateAsync(user);
+
+                await LogPasswordResetSuccessAsync(user.Id, user.Email);
+                return (true, "Şifreniz başarıyla güncellendi. Yeni şifre ile giriş yapabilirsiniz.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during password reset");
+                return (false, "Bir hata oluştu. Lütfen daha sonra tekrar deneyin.");
+            }
+        }
+
+        private async Task LogForgotPasswordRequestAsync(int? userId, string email, string? ipAddress)
+        {
+            try
+            {
+                var auditLog = new AuditLog
+                {
+                    UserId = userId,
+                    Action = "ForgotPasswordRequest",
+                    EntityName = "User",
+                    EntityId = userId?.ToString(),
+                    Timestamp = DateTime.UtcNow,
+                    IpAddress = ipAddress,
+                    NewValues = new Dictionary<string, string?>
+                    {
+                        ["Email"] = email,
+                        ["Action"] = "ForgotPasswordRequest"
+                    }
+                };
+                await _logService.CreateAuditLogAsync(auditLog);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create forgot password audit log. Logging error is ignored.");
+            }
+        }
+
+        private async Task LogPasswordResetSuccessAsync(int userId, string email)
+        {
+            try
+            {
+                var auditLog = new AuditLog
+                {
+                    UserId = userId,
+                    Action = "PasswordResetSuccess",
+                    EntityName = "User",
+                    EntityId = userId.ToString(),
+                    Timestamp = DateTime.UtcNow,
+                    IpAddress = null,
+                    NewValues = new Dictionary<string, string?>
+                    {
+                        ["Email"] = email,
+                        ["Action"] = "PasswordResetSuccess"
+                    }
+                };
+                await _logService.CreateAuditLogAsync(auditLog);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create password reset audit log. Logging error is ignored.");
+            }
+        }
+
         public async Task<AuthResponseDto?> LoginAsync(UserLoginDto loginDto, HttpContext? httpContext = null)
         {
             // Extract HTTP context information for logging

@@ -55,6 +55,40 @@ namespace BasarMapApp.Api.Controllers
             return Ok(ApiResponse<string>.SuccessResult(message ?? "Verification successful", message ?? "Verification successful"));
         }
 
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult<ApiResponse<string>>> ForgotPassword([FromBody] ForgotPasswordDto forgotDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ApiResponse<string>.FailureResult("Invalid input data"));
+            }
+
+            var (success, message) = await _authService.ForgotPasswordAsync(forgotDto, HttpContext);
+            if (!success)
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(message));
+            }
+
+            return Ok(ApiResponse<string>.SuccessResult(message, message));
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<ActionResult<ApiResponse<string>>> ResetPassword([FromBody] ResetPasswordDto resetDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ApiResponse<string>.FailureResult("Invalid input data"));
+            }
+
+            var (success, message) = await _authService.ResetPasswordAsync(resetDto);
+            if (!success)
+            {
+                return BadRequest(ApiResponse<string>.FailureResult(message));
+            }
+
+            return Ok(ApiResponse<string>.SuccessResult(message, message));
+        }
+
         [HttpPost("login")]
         public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] UserLoginDto loginDto)
         {

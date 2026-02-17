@@ -86,6 +86,43 @@ namespace BasarMapApp.Api.Services.Implementations
             }
         }
 
+        public async Task<bool> SendPasswordResetLinkAsync(string toUserEmail, string resetToken)
+        {
+            try
+            {
+                var frontendUrl = _configuration["FrontendUrl"] ?? "http://localhost:5173";
+                var resetLink = $"{frontendUrl.TrimEnd('/')}/reset-password?token={Uri.EscapeDataString(resetToken)}";
+
+                var subject = "BasarMapApp - Şifre Sıfırlama";
+                var body = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;'>
+                        <div style='max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+                            <h2 style='color: #667eea; text-align: center;'>Şifre Sıfırlama Talebi</h2>
+                            <p>Şifrenizi sıfırlamak için aşağıdaki bağlantıya tıklayın:</p>
+                            <div style='background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: center;'>
+                                <a href='{resetLink}' style='color: #667eea; font-weight: bold; text-decoration: none;'>Şifremi Sıfırla</a>
+                            </div>
+                            <p style='color: #666; font-size: 14px;'>Bu link 15 dakika içinde geçerliliğini yitirecektir.</p>
+                            <p style='color: #666; font-size: 14px;'>Bu talebi siz yapmadıysanız, bu e-postayı dikkate almayın.</p>
+                            <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'>
+                            <p style='text-align: center; color: #999; font-size: 12px;'>
+                                © 2026 BasarMapApp. All rights reserved.
+                            </p>
+                        </div>
+                    </body>
+                    </html>
+                ";
+
+                return await SendEmailAsync(toUserEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending password reset email to {Email}", toUserEmail);
+                return false;
+            }
+        }
+
         private async Task<bool> SendEmailAsync(string toEmail, string subject, string body)
         {
             try

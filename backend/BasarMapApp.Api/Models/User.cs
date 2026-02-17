@@ -39,5 +39,15 @@ namespace BasarMapApp.Api.Models
         /// When the lockout ends (UTC). Null if not locked.
         /// </summary>
         public DateTime? LockoutEnd { get; set; }
+
+        /// <summary>
+        /// Token for password reset flow.
+        /// </summary>
+        public string? PasswordResetToken { get; set; }
+
+        /// <summary>
+        /// When the password reset token expires (UTC).
+        /// </summary>
+        public DateTime? PasswordResetTokenExpires { get; set; }
     }
 }
