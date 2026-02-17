@@ -6,6 +6,7 @@ import Register from './components/Register';
 import EmailVerification from './components/EmailVerification';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminPanel from './components/AdminPanel';
+import LogsPage from './pages/admin/logs/LogsPage';
 import Header from './components/Header';
 import MapView from './components/MapView';
 import MapViewWithBoundaries from './components/MapViewWithBoundaries';
@@ -32,7 +33,7 @@ function App() {
         }
       />
 
-      {/* Admin-only route */}
+      {/* Admin-only routes */}
       <Route
         path="/admin/users"
         element={
@@ -40,6 +41,17 @@ function App() {
             <div className="app-wrapper">
               <Header />
               <AdminPanel />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/logs"
+        element={
+          <ProtectedRoute requiredRoles={['Admin']}>
+            <div className="app-wrapper">
+              <Header />
+              <LogsPage />
             </div>
           </ProtectedRoute>
         }

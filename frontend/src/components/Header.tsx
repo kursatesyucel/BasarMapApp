@@ -31,9 +31,14 @@ const Header: React.FC = () => {
               </div>
               
               {user.role === 'Admin' && (
-                <Link to="/admin/users" className="admin-link">
-                  User Management
-                </Link>
+                <>
+                  <Link to="/admin/users" className="admin-link">
+                    Kullanıcı Yönetimi
+                  </Link>
+                  <Link to="/admin/logs" className="admin-link">
+                    Sistem Logları
+                  </Link>
+                </>
               )}
               
               <button onClick={handleLogout} className="logout-button">
