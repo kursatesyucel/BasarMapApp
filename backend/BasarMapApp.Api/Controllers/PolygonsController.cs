@@ -1,4 +1,5 @@
 using BasarMapApp.Api.DTOs.Polygon;
+using BasarMapApp.Api.Filters;
 using BasarMapApp.Api.Responses;
 using BasarMapApp.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -59,6 +60,7 @@ namespace BasarMapApp.Api.Controllers
         /// <returns>Created polygon</returns>
         [HttpPost]
         [Authorize(Roles = "Admin")]
+        [AuditLog(entityName: "Polygon", action: "Create")]
         public async Task<ActionResult<ApiResponse<PolygonDto>>> CreatePolygon([FromBody] CreatePolygonDto createPolygonDto)
         {
             if (!ModelState.IsValid)
@@ -95,6 +97,7 @@ namespace BasarMapApp.Api.Controllers
         /// <returns>Created polygon with intersections removed</returns>
         [HttpPost("create-with-intersection-handling")]
         [Authorize(Roles = "Admin")]
+        [AuditLog(entityName: "Polygon", action: "Create")]
         public async Task<ActionResult<ApiResponse<PolygonDto>>> CreatePolygonWithIntersectionHandling([FromBody] CreatePolygonDto createPolygonDto)
         {
             if (!ModelState.IsValid)
@@ -132,6 +135,7 @@ namespace BasarMapApp.Api.Controllers
         /// <returns>Updated polygon</returns>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
+        [AuditLog(entityName: "Polygon", action: "Update")]
         public async Task<ActionResult<ApiResponse<PolygonDto>>> UpdatePolygon(int id, [FromBody] UpdatePolygonDto updatePolygonDto)
         {
             if (!ModelState.IsValid)
@@ -167,6 +171,7 @@ namespace BasarMapApp.Api.Controllers
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
+        [AuditLog(entityName: "Polygon", action: "Delete")]
         public async Task<ActionResult<ApiResponse<bool>>> DeletePolygon(int id)
         {
             var result = await _polygonService.DeleteAsync(id);

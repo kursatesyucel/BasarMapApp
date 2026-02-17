@@ -1,4 +1,5 @@
 using BasarMapApp.Api.DTOs.Point;
+using BasarMapApp.Api.Filters;
 using BasarMapApp.Api.Responses;
 using BasarMapApp.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -58,6 +59,7 @@ namespace BasarMapApp.Api.Controllers
         /// <param name="createPointDto">Point creation data</param>
         /// <returns>Created point</returns>
         [HttpPost]
+        [AuditLog(entityName: "MapPoint", action: "Create")]
         public async Task<ActionResult<ApiResponse<PointDto>>> CreatePoint([FromBody] CreatePointDto createPointDto)
         {
             if (!ModelState.IsValid)
@@ -94,6 +96,7 @@ namespace BasarMapApp.Api.Controllers
         /// <param name="updatePointDto">Point update data</param>
         /// <returns>Updated point</returns>
         [HttpPut("{id}")]
+        [AuditLog(entityName: "MapPoint", action: "Update")]
         public async Task<ActionResult<ApiResponse<PointDto>>> UpdatePoint(int id, [FromBody] UpdatePointDto updatePointDto)
         {
             if (!ModelState.IsValid)
@@ -128,6 +131,7 @@ namespace BasarMapApp.Api.Controllers
         /// <param name="id">Point ID</param>
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
+        [AuditLog(entityName: "MapPoint", action: "Delete")]
         public async Task<ActionResult<ApiResponse<bool>>> DeletePoint(int id)
         {
             var result = await _pointService.DeleteAsync(id);

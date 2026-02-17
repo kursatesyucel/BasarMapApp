@@ -92,18 +92,24 @@ namespace BasarMapApp.Api.Filters
                         }
                     }
 
-                    // Serialize action arguments as the new values with circular reference handling
+                    // Serialize action arguments - MUST use only MongoDB-compatible types (string, int, bool, null)
+                    // JsonElement causes BsonSerializationException - never use Deserialize<object> or Dictionary<string, object>
                     object? newValues = null;
                     try
                     {
-                        // Only serialize if there are arguments
                         if (context.ActionArguments.Count > 0)
                         {
-                            // Remove large or sensitive data before serialization
-                            var sanitizedArgs = new Dictionary<string, object?>();
+                            var jsonOptions = new JsonSerializerOptions
+                            {
+                                ReferenceHandler = ReferenceHandler.IgnoreCycles,
+                                WriteIndented = false,
+                                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+                                MaxDepth = 32
+                            };
+
+                            var sanitizedArgs = new Dictionary<string, string?>();
                             foreach (var kvp in context.ActionArguments)
                             {
-                                // Skip sensitive or binary data
                                 if (kvp.Key.Contains("password", StringComparison.OrdinalIgnoreCase) ||
                                     kvp.Key.Contains("token", StringComparison.OrdinalIgnoreCase))
                                 {
@@ -111,24 +117,12 @@ namespace BasarMapApp.Api.Filters
                                 }
                                 else if (kvp.Value != null)
                                 {
-                                    // Serialize with circular reference handling
                                     try
                                     {
-                                        var jsonOptions = new JsonSerializerOptions
-                                        {
-                                            ReferenceHandler = ReferenceHandler.IgnoreCycles,
-                                            WriteIndented = false,
-                                            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-                                            MaxDepth = 32 // Limit depth to prevent stack overflow
-                                        };
-
-                                        // Serialize to JSON string first, then deserialize to object
-                                        var jsonString = JsonSerializer.Serialize(kvp.Value, jsonOptions);
-                                        sanitizedArgs[kvp.Key] = JsonSerializer.Deserialize<object>(jsonString);
+                                        sanitizedArgs[kvp.Key] = JsonSerializer.Serialize(kvp.Value, jsonOptions);
                                     }
                                     catch
                                     {
-                                        // If serialization fails, store type name
                                         sanitizedArgs[kvp.Key] = $"[{kvp.Value.GetType().Name}]";
                                     }
                                 }
@@ -137,14 +131,13 @@ namespace BasarMapApp.Api.Filters
                                     sanitizedArgs[kvp.Key] = null;
                                 }
                             }
-
                             newValues = sanitizedArgs;
                         }
                     }
                     catch (Exception ex)
                     {
                         logger?.LogWarning(ex, "Failed to serialize action arguments for audit log");
-                        newValues = new { error = "Failed to serialize", type = "SerializationError" };
+                        newValues = new Dictionary<string, string?> { ["error"] = "Failed to serialize", ["type"] = "SerializationError" };
                     }
 
                     // Create and log the audit entry

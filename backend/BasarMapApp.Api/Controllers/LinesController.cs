@@ -1,4 +1,5 @@
 using BasarMapApp.Api.DTOs.Line;
+using BasarMapApp.Api.Filters;
 using BasarMapApp.Api.Responses;
 using BasarMapApp.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -59,6 +60,7 @@ namespace BasarMapApp.Api.Controllers
         /// <returns>Created line</returns>
         [HttpPost]
         [Authorize(Roles = "Manager,Admin")]
+        [AuditLog(entityName: "Line", action: "Create")]
         public async Task<ActionResult<ApiResponse<LineDto>>> CreateLine([FromBody] CreateLineDto createLineDto)
         {
             if (!ModelState.IsValid)
@@ -96,6 +98,7 @@ namespace BasarMapApp.Api.Controllers
         /// <returns>Updated line</returns>
         [HttpPut("{id}")]
         [Authorize(Roles = "Manager,Admin")]
+        [AuditLog(entityName: "Line", action: "Update")]
         public async Task<ActionResult<ApiResponse<LineDto>>> UpdateLine(int id, [FromBody] UpdateLineDto updateLineDto)
         {
             if (!ModelState.IsValid)
@@ -131,6 +134,7 @@ namespace BasarMapApp.Api.Controllers
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Manager,Admin")]
+        [AuditLog(entityName: "Line", action: "Delete")]
         public async Task<ActionResult<ApiResponse<bool>>> DeleteLine(int id)
         {
             var result = await _lineService.DeleteAsync(id);
