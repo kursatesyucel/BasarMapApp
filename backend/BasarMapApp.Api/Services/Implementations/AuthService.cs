@@ -185,12 +185,37 @@ namespace BasarMapApp.Api.Services.Implementations
                     return null;
                 }
 
+                // ========== ADIM 1: Kilit Kontrolü (Brute-Force - En Başta) ==========
+                if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTime.UtcNow)
+                {
+                    var lockoutEndLocal = TimeZoneInfo.ConvertTimeFromUtc(user.LockoutEnd.Value, GetTurkeyTimeZone());
+                    var lockoutMessage = $"Hesabınız çok fazla hatalı giriş denemesi nedeniyle {lockoutEndLocal:dd.MM.yyyy HH:mm} tarihine kadar kilitlenmiştir.";
+                    _logger.LogWarning("Locked account login attempt: {Email}", user.Email);
+
+                    await LogLoginAttemptAsync(
+                        userId: user.Id,
+                        email: user.Email,
+                        isSuccess: false,
+                        failureReason: "Account locked",
+                        ipAddress: ipAddress,
+                        userAgent: userAgent
+                    );
+                    return new AuthResponseDto { Token = string.Empty, Username = string.Empty, Role = string.Empty, ErrorMessage = lockoutMessage };
+                }
+
+                // Lockout süresi dolmuşsa sıfırla
+                if (user.LockoutEnd.HasValue && user.LockoutEnd.Value <= DateTime.UtcNow)
+                {
+                    user.LockoutEnd = null;
+                    user.AccessFailedCount = 0;
+                    await _userRepository.UpdateAsync(user);
+                }
+
                 // Check if email is verified
                 if (!user.IsEmailConfirmed)
                 {
                     _logger.LogWarning("Login attempt with unverified email: {Email}", user.Email);
                     
-                    // Log failed login attempt - email not verified
                     await LogLoginAttemptAsync(
                         userId: user.Id,
                         email: user.Email,
@@ -207,7 +232,6 @@ namespace BasarMapApp.Api.Services.Implementations
                 {
                     _logger.LogWarning("Login attempt with inactive account: {Username}", user.Username);
                     
-                    // Log failed login attempt - account inactive
                     await LogLoginAttemptAsync(
                         userId: user.Id,
                         email: user.Email,
@@ -219,10 +243,32 @@ namespace BasarMapApp.Api.Services.Implementations
                     return null;
                 }
 
-                // Verify password
+                // ========== ADIM 2 & 3: Şifre Doğrulama ==========
                 if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
                 {
-                    // Log failed login attempt - invalid password
+                    // Hatalı şifre - AccessFailedCount artır
+                    user.AccessFailedCount++;
+
+                    if (user.AccessFailedCount >= 5)
+                    {
+                        user.LockoutEnd = DateTime.UtcNow.AddHours(1);
+                        user.AccessFailedCount = 5;
+                        await _userRepository.UpdateAsync(user);
+
+                        await LogLoginAttemptAsync(
+                            userId: user.Id,
+                            email: user.Email,
+                            isSuccess: false,
+                            failureReason: "Account locked after 5 failed attempts",
+                            ipAddress: ipAddress,
+                            userAgent: userAgent
+                        );
+                        return new AuthResponseDto { Token = string.Empty, Username = string.Empty, Role = string.Empty, ErrorMessage = "Hesabınız 1 saatliğine kilitlendi." };
+                    }
+
+                    await _userRepository.UpdateAsync(user);
+                    var remainingAttempts = 5 - user.AccessFailedCount;
+
                     await LogLoginAttemptAsync(
                         userId: user.Id,
                         email: user.Email,
@@ -231,13 +277,17 @@ namespace BasarMapApp.Api.Services.Implementations
                         ipAddress: ipAddress,
                         userAgent: userAgent
                     );
-                    return null;
+                    return new AuthResponseDto { Token = string.Empty, Username = string.Empty, Role = string.Empty, ErrorMessage = $"Hatalı şifre. Kalan hakkınız: {remainingAttempts}" };
                 }
+
+                // ========== Başarılı Giriş - Sayaçları Sıfırla ==========
+                user.AccessFailedCount = 0;
+                user.LockoutEnd = null;
+                await _userRepository.UpdateAsync(user);
 
                 // Login successful - generate token
                 var token = GenerateToken(user);
 
-                // Log successful login attempt
                 await LogLoginAttemptAsync(
                     userId: user.Id,
                     email: user.Email,
@@ -258,7 +308,6 @@ namespace BasarMapApp.Api.Services.Implementations
             {
                 _logger.LogError(ex, "Error during login");
                 
-                // Log failed login attempt - system error
                 await LogLoginAttemptAsync(
                     userId: null,
                     email: loginDto.LoginIdentifier,
@@ -408,6 +457,18 @@ namespace BasarMapApp.Api.Services.Implementations
             {
                 _logger.LogError(ex, "Error deleting user");
                 return (false, "An error occurred while deleting user");
+            }
+        }
+
+        private static TimeZoneInfo GetTurkeyTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Europe/Istanbul");
+            }
+            catch
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time");
             }
         }
     }

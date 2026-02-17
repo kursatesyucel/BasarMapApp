@@ -29,5 +29,15 @@ namespace BasarMapApp.Api.Models
         public bool IsActive { get; set; } = true;
         
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Number of failed login attempts (Brute-Force protection)
+        /// </summary>
+        public int AccessFailedCount { get; set; } = 0;
+
+        /// <summary>
+        /// When the lockout ends (UTC). Null if not locked.
+        /// </summary>
+        public DateTime? LockoutEnd { get; set; }
     }
 }

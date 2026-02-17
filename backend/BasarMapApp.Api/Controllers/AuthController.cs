@@ -69,6 +69,11 @@ namespace BasarMapApp.Api.Controllers
                 return Unauthorized(ApiResponse<AuthResponseDto>.FailureResult("Invalid credentials, email not verified, or account is inactive"));
             }
 
+            if (!string.IsNullOrEmpty(result.ErrorMessage))
+            {
+                return Unauthorized(ApiResponse<AuthResponseDto>.FailureResult(result.ErrorMessage));
+            }
+
             return Ok(ApiResponse<AuthResponseDto>.SuccessResult(result, "Login successful"));
         }
 
