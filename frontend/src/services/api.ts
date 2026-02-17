@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getDeviceId } from '../utils/deviceFingerprint';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5012/api';
 
@@ -22,6 +23,10 @@ api.interceptors.request.use(
       // Token yoksa Authorization header'ını kaldır (temizlik için)
       delete config.headers.Authorization;
     }
+
+    // Add device ID to all requests for device tracking
+    const deviceId = getDeviceId();
+    config.headers['X-Device-Id'] = deviceId;
     
     return config;
   },

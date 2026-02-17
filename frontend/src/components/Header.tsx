@@ -30,6 +30,10 @@ const Header: React.FC = () => {
                 </span>
               </div>
               
+              <Link to="/devices" className="admin-link">
+                Cihazlarım
+              </Link>
+
               {user.role === 'Admin' && (
                 <>
                   <Link to="/admin/users" className="admin-link">

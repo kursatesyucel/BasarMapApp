@@ -74,6 +74,7 @@ builder.Services.AddScoped<IPolygonService, PolygonService>();
 builder.Services.AddScoped<ICameraService, CameraService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMailService, GmailMailService>();
+builder.Services.AddScoped<IDeviceService, DeviceService>();
 
 // Register GIS Boundary service (Read-Only)
 builder.Services.AddScoped<IBoundaryService, BoundaryService>();

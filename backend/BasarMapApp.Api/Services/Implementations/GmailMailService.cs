@@ -123,6 +123,43 @@ namespace BasarMapApp.Api.Services.Implementations
             }
         }
 
+        public async Task<bool> SendNewDeviceAlertAsync(string toEmail, string username, string deviceName, string ipAddress)
+        {
+            try
+            {
+                var subject = "BasarMapApp - Yeni Cihaz Girişi Tespit Edildi";
+                var body = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;'>
+                        <div style='max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+                            <h2 style='color: #667eea; text-align: center;'>🔐 Yeni Cihaz Girişi</h2>
+                            <p>Merhaba <strong>{username}</strong>,</p>
+                            <p>Hesabınıza yeni bir cihazdan giriş yapıldı:</p>
+                            <div style='background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;'>
+                                <p style='margin: 5px 0;'><strong>Cihaz:</strong> {deviceName}</p>
+                                <p style='margin: 5px 0;'><strong>IP Adresi:</strong> {ipAddress}</p>
+                                <p style='margin: 5px 0;'><strong>Tarih:</strong> {DateTime.UtcNow.AddHours(3):dd.MM.yyyy HH:mm} (Türkiye Saati)</p>
+                            </div>
+                            <p style='color: #666; font-size: 14px;'>Bu giriş sizseniz, herhangi bir işlem yapmanıza gerek yok.</p>
+                            <p style='color: #c33; font-size: 14px; font-weight: bold;'>Bu giriş siz değilseniz, derhal şifrenizi değiştirin ve hesabınızı güvence altına alın.</p>
+                            <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;'>
+                            <p style='text-align: center; color: #999; font-size: 12px;'>
+                                © 2026 BasarMapApp. All rights reserved.
+                            </p>
+                        </div>
+                    </body>
+                    </html>
+                ";
+
+                return await SendEmailAsync(toEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending new device alert email to {Email}", toEmail);
+                return false;
+            }
+        }
+
         private async Task<bool> SendEmailAsync(string toEmail, string subject, string body)
         {
             try

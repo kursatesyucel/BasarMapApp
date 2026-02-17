@@ -6,6 +6,7 @@ import Register from './components/Register';
 import EmailVerification from './components/EmailVerification';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
+import DevicesPage from './pages/DevicesPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminPanel from './components/AdminPanel';
 import LogsPage from './pages/admin/logs/LogsPage';
@@ -33,6 +34,16 @@ function App() {
         element={
           <ProtectedRoute>
             <MapViewWrapper />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* User routes */}
+      <Route
+        path="/devices"
+        element={
+          <ProtectedRoute>
+            <DevicesPage />
           </ProtectedRoute>
         }
       />

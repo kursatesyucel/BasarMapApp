@@ -17,19 +17,22 @@ namespace BasarMapApp.Api.Services.Implementations
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
         private readonly ILogService _logService;
+        private readonly IDeviceService _deviceService;
 
         public AuthService(
             IUserRepository userRepository, 
             IMailService mailService,
             IConfiguration configuration,
             ILogger<AuthService> logger,
-            ILogService logService)
+            ILogService logService,
+            IDeviceService deviceService)
         {
             _userRepository = userRepository;
             _mailService = mailService;
             _configuration = configuration;
             _logger = logger;
             _logService = logService;
+            _deviceService = deviceService;
         }
 
         public async Task<(bool Success, string? Message)> RegisterAsync(UserRegisterDto registerDto, HttpContext? httpContext = null)
@@ -401,6 +404,23 @@ namespace BasarMapApp.Api.Services.Implementations
                 user.AccessFailedCount = 0;
                 user.LockoutEnd = null;
                 await _userRepository.UpdateAsync(user);
+
+                // Track device (fire-and-forget - should not block login)
+                var deviceId = httpContext?.Request.Headers["X-Device-Id"].ToString();
+                if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(userAgent) && !string.IsNullOrEmpty(ipAddress))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _deviceService.TrackDeviceAsync(user.Id, deviceId, userAgent, ipAddress);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Device tracking failed for user {UserId}. Login continues.", user.Id);
+                        }
+                    });
+                }
 
                 // Login successful - generate token
                 var token = GenerateToken(user);
