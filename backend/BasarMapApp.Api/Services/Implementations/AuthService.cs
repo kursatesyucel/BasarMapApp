@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using BasarMapApp.Api.DTOs.Auth;
 using BasarMapApp.Api.Models;
+using BasarMapApp.Api.Models.Logs;
 using BasarMapApp.Api.Repositories.Interfaces;
 using BasarMapApp.Api.Services.Interfaces;
 using Microsoft.IdentityModel.Tokens;
@@ -15,21 +16,27 @@ namespace BasarMapApp.Api.Services.Implementations
         private readonly IMailService _mailService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
+        private readonly ILogService _logService;
 
         public AuthService(
             IUserRepository userRepository, 
             IMailService mailService,
             IConfiguration configuration,
-            ILogger<AuthService> logger)
+            ILogger<AuthService> logger,
+            ILogService logService)
         {
             _userRepository = userRepository;
             _mailService = mailService;
             _configuration = configuration;
             _logger = logger;
+            _logService = logService;
         }
 
-        public async Task<(bool Success, string? Message)> RegisterAsync(UserRegisterDto registerDto)
+        public async Task<(bool Success, string? Message)> RegisterAsync(UserRegisterDto registerDto, HttpContext? httpContext = null)
         {
+            // Extract HTTP context information for logging
+            string? ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString();
+
             try
             {
                 // Check if username already exists
@@ -62,6 +69,9 @@ namespace BasarMapApp.Api.Services.Implementations
 
                 await _userRepository.CreateAsync(user);
 
+                // Log successful user registration (Audit Log)
+                await LogUserRegistrationAsync(user.Id, user.Email, user.Username, ipAddress);
+
                 // Send verification email
                 var emailSent = await _mailService.SendVerificationEmailAsync(
                     user.Email, 
@@ -80,6 +90,40 @@ namespace BasarMapApp.Api.Services.Implementations
             {
                 _logger.LogError(ex, "Error during user registration");
                 return (false, "An error occurred during registration");
+            }
+        }
+
+        /// <summary>
+        /// Helper method to log user registration asynchronously without blocking
+        /// </summary>
+        private async Task LogUserRegistrationAsync(int userId, string email, string username, string? ipAddress)
+        {
+            try
+            {
+                var auditLog = new AuditLog
+                {
+                    UserId = userId,
+                    Action = "Register",
+                    EntityName = "User",
+                    EntityId = userId.ToString(),
+                    Timestamp = DateTime.UtcNow,
+                    IpAddress = ipAddress,
+                    NewValues = new
+                    {
+                        Email = email,
+                        Username = username,
+                        Role = "User",
+                        IsEmailConfirmed = false
+                    }
+                };
+
+                // Fire-and-forget: Logging should not block registration process
+                await _logService.CreateAuditLogAsync(auditLog);
+            }
+            catch (Exception ex)
+            {
+                // Swallow exceptions - logging failures should never break registration
+                _logger.LogError(ex, "Failed to create registration audit log. Logging error is ignored.");
             }
         }
 
@@ -117,19 +161,44 @@ namespace BasarMapApp.Api.Services.Implementations
             }
         }
 
-        public async Task<AuthResponseDto?> LoginAsync(UserLoginDto loginDto)
+        public async Task<AuthResponseDto?> LoginAsync(UserLoginDto loginDto, HttpContext? httpContext = null)
         {
+            // Extract HTTP context information for logging
+            string? ipAddress = httpContext?.Connection.RemoteIpAddress?.ToString();
+            string? userAgent = httpContext?.Request.Headers["User-Agent"].ToString();
+
             try
             {
                 // Find user by username or email
                 var user = await _userRepository.GetByUsernameOrEmailAsync(loginDto.LoginIdentifier);
                 if (user == null)
+                {
+                    // Log failed login attempt - user not found
+                    await LogLoginAttemptAsync(
+                        userId: null,
+                        email: loginDto.LoginIdentifier,
+                        isSuccess: false,
+                        failureReason: "User not found",
+                        ipAddress: ipAddress,
+                        userAgent: userAgent
+                    );
                     return null;
+                }
 
                 // Check if email is verified
                 if (!user.IsEmailConfirmed)
                 {
                     _logger.LogWarning("Login attempt with unverified email: {Email}", user.Email);
+                    
+                    // Log failed login attempt - email not verified
+                    await LogLoginAttemptAsync(
+                        userId: user.Id,
+                        email: user.Email,
+                        isSuccess: false,
+                        failureReason: "Email not verified",
+                        ipAddress: ipAddress,
+                        userAgent: userAgent
+                    );
                     return null;
                 }
 
@@ -137,15 +206,46 @@ namespace BasarMapApp.Api.Services.Implementations
                 if (!user.IsActive)
                 {
                     _logger.LogWarning("Login attempt with inactive account: {Username}", user.Username);
+                    
+                    // Log failed login attempt - account inactive
+                    await LogLoginAttemptAsync(
+                        userId: user.Id,
+                        email: user.Email,
+                        isSuccess: false,
+                        failureReason: "Account is inactive",
+                        ipAddress: ipAddress,
+                        userAgent: userAgent
+                    );
                     return null;
                 }
 
                 // Verify password
                 if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+                {
+                    // Log failed login attempt - invalid password
+                    await LogLoginAttemptAsync(
+                        userId: user.Id,
+                        email: user.Email,
+                        isSuccess: false,
+                        failureReason: "Invalid password",
+                        ipAddress: ipAddress,
+                        userAgent: userAgent
+                    );
                     return null;
+                }
 
-                // Generate token
+                // Login successful - generate token
                 var token = GenerateToken(user);
+
+                // Log successful login attempt
+                await LogLoginAttemptAsync(
+                    userId: user.Id,
+                    email: user.Email,
+                    isSuccess: true,
+                    failureReason: null,
+                    ipAddress: ipAddress,
+                    userAgent: userAgent
+                );
 
                 return new AuthResponseDto
                 {
@@ -157,7 +257,52 @@ namespace BasarMapApp.Api.Services.Implementations
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during login");
+                
+                // Log failed login attempt - system error
+                await LogLoginAttemptAsync(
+                    userId: null,
+                    email: loginDto.LoginIdentifier,
+                    isSuccess: false,
+                    failureReason: $"System error: {ex.Message}",
+                    ipAddress: ipAddress,
+                    userAgent: userAgent
+                );
+                
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Helper method to log login attempts asynchronously without blocking
+        /// </summary>
+        private async Task LogLoginAttemptAsync(
+            int? userId,
+            string email,
+            bool isSuccess,
+            string? failureReason,
+            string? ipAddress,
+            string? userAgent)
+        {
+            try
+            {
+                var loginLog = new LoginLog
+                {
+                    UserId = userId,
+                    Email = email,
+                    Timestamp = DateTime.UtcNow,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    IsSuccess = isSuccess,
+                    FailureReason = failureReason
+                };
+
+                // Fire-and-forget: Logging should not block login process
+                await _logService.CreateLoginLogAsync(loginLog);
+            }
+            catch (Exception ex)
+            {
+                // Swallow exceptions - logging failures should never break authentication
+                _logger.LogError(ex, "Failed to create login log. Logging error is ignored.");
             }
         }
 

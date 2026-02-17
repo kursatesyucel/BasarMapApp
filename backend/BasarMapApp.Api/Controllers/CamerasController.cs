@@ -1,4 +1,5 @@
 using BasarMapApp.Api.DTOs.Camera;
+using BasarMapApp.Api.Filters;
 using BasarMapApp.Api.Responses;
 using BasarMapApp.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -95,6 +96,7 @@ namespace BasarMapApp.Api.Controllers
         /// <returns>Created camera</returns>
         [HttpPost]
         [Authorize(Roles = "Admin")]
+        [AuditLog(entityName: "Camera", action: "Create")]
         public async Task<ActionResult<ApiResponse<CameraDto>>> CreateCamera([FromBody] CreateCameraDto createCameraDto)
         {
             if (!ModelState.IsValid)
@@ -132,6 +134,7 @@ namespace BasarMapApp.Api.Controllers
         /// <returns>Updated camera</returns>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
+        [AuditLog(entityName: "Camera", action: "Update")]
         public async Task<ActionResult<ApiResponse<CameraDto>>> UpdateCamera(int id, [FromBody] UpdateCameraDto updateCameraDto)
         {
             if (!ModelState.IsValid)
@@ -167,6 +170,7 @@ namespace BasarMapApp.Api.Controllers
         /// <returns>Deletion result</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
+        [AuditLog(entityName: "Camera", action: "Delete")]
         public async Task<ActionResult<ApiResponse<bool>>> DeleteCamera(int id)
         {
             var result = await _cameraService.DeleteAsync(id);

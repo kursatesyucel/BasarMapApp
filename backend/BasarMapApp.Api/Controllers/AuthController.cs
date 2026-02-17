@@ -1,4 +1,5 @@
 using BasarMapApp.Api.DTOs.Auth;
+using BasarMapApp.Api.Filters;
 using BasarMapApp.Api.Repositories.Interfaces;
 using BasarMapApp.Api.Responses;
 using BasarMapApp.Api.Services.Interfaces;
@@ -28,7 +29,7 @@ namespace BasarMapApp.Api.Controllers
                 return BadRequest(ApiResponse<string>.FailureResult("Invalid input data"));
             }
 
-            var (success, message) = await _authService.RegisterAsync(registerDto);
+            var (success, message) = await _authService.RegisterAsync(registerDto, HttpContext);
             if (!success)
             {
                 return Conflict(ApiResponse<string>.FailureResult(message ?? "Registration failed"));
@@ -62,7 +63,7 @@ namespace BasarMapApp.Api.Controllers
                 return BadRequest(ApiResponse<AuthResponseDto>.FailureResult("Invalid input data"));
             }
 
-            var result = await _authService.LoginAsync(loginDto);
+            var result = await _authService.LoginAsync(loginDto, HttpContext);
             if (result == null)
             {
                 return Unauthorized(ApiResponse<AuthResponseDto>.FailureResult("Invalid credentials, email not verified, or account is inactive"));
@@ -87,6 +88,7 @@ namespace BasarMapApp.Api.Controllers
         /// </summary>
         [HttpPut("users/{id}/role")]
         [Authorize(Roles = "Admin")]
+        [AuditLog(entityName: "User", action: "UpdateRole")]
         public async Task<ActionResult<ApiResponse<UserListDto>>> UpdateUserRole(int id, [FromBody] UpdateUserRoleDto updateDto)
         {
             if (!ModelState.IsValid)
@@ -126,6 +128,7 @@ namespace BasarMapApp.Api.Controllers
         /// </summary>
         [HttpPut("users/{id}/status")]
         [Authorize(Roles = "Admin")]
+        [AuditLog(entityName: "User", action: "UpdateStatus")]
         public async Task<ActionResult<ApiResponse<string>>> UpdateUserStatus(int id, [FromBody] UpdateUserStatusDto updateDto)
         {
             if (!ModelState.IsValid)
@@ -157,6 +160,7 @@ namespace BasarMapApp.Api.Controllers
         /// </summary>
         [HttpDelete("users/{id}")]
         [Authorize(Roles = "Admin")]
+        [AuditLog(entityName: "User", action: "Delete")]
         public async Task<ActionResult<ApiResponse<string>>> DeleteUser(int id)
         {
             // Get current admin user ID from claims

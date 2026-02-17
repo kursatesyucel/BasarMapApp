@@ -1,4 +1,5 @@
 using System.Text;
+using BasarMapApp.Api.Configuration;
 using BasarMapApp.Api.Data;
 using BasarMapApp.Api.Mappings;
 using BasarMapApp.Api.Repositories.Implementations;
@@ -43,6 +44,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         npgsql => npgsql.UseNetTopologySuite()
     )
 );
+
+// Configure MongoDB settings for logging
+builder.Services.Configure<MongoDbSettings>(
+    builder.Configuration.GetSection("MongoDbSettings"));
+
+// Register LogService as Singleton (cross-cutting concern, stateless service)
+builder.Services.AddSingleton<ILogService, LogService>();
 
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
