@@ -405,21 +405,18 @@ namespace BasarMapApp.Api.Services.Implementations
                 user.LockoutEnd = null;
                 await _userRepository.UpdateAsync(user);
 
-                // Track device (fire-and-forget - should not block login)
+                // Track device - MUST run in request scope so DbContext is available for user lookup before sending email
                 var deviceId = httpContext?.Request.Headers["X-Device-Id"].ToString();
                 if (!string.IsNullOrEmpty(deviceId) && !string.IsNullOrEmpty(userAgent) && !string.IsNullOrEmpty(ipAddress))
                 {
-                    _ = Task.Run(async () =>
+                    try
                     {
-                        try
-                        {
-                            await _deviceService.TrackDeviceAsync(user.Id, deviceId, userAgent, ipAddress);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Device tracking failed for user {UserId}. Login continues.", user.Id);
-                        }
-                    });
+                        await _deviceService.TrackDeviceAsync(user.Id, deviceId, userAgent, ipAddress);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Device tracking failed for user {UserId}. Login continues.", user.Id);
+                    }
                 }
 
                 // Login successful - generate token
