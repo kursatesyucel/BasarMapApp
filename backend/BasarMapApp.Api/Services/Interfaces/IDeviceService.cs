@@ -31,5 +31,14 @@ namespace BasarMapApp.Api.Services.Interfaces
         /// <param name="deviceId">Device ID to revoke</param>
         /// <returns>True if device was found and deleted, false otherwise</returns>
         Task<bool> RevokeDeviceAsync(int userId, string deviceId);
+
+        /// <summary>
+        /// Sets a device as the trusted (secure) device for a user.
+        /// Only ONE device can be trusted at a time - all other devices will be marked as untrusted.
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <param name="deviceId">Device ID to mark as trusted</param>
+        /// <returns>True if device was found and set as trusted, false otherwise</returns>
+        Task<bool> SetTrustedDeviceAsync(int userId, string deviceId);
     }
 }

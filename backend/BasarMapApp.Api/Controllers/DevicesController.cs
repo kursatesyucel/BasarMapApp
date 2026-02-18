@@ -90,5 +90,35 @@ namespace BasarMapApp.Api.Controllers
                 return StatusCode(500, ApiResponse<string>.FailureResult("An error occurred while revoking device"));
             }
         }
+
+        /// <summary>
+        /// Set a device as the trusted (secure) device
+        /// </summary>
+        [HttpPatch("{deviceId}/trusted")]
+        public async Task<ActionResult<ApiResponse<string>>> SetTrustedDevice(string deviceId)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    return Unauthorized(ApiResponse<string>.FailureResult("Unable to identify user"));
+                }
+
+                var success = await _deviceService.SetTrustedDeviceAsync(userId, deviceId);
+                
+                if (!success)
+                {
+                    return NotFound(ApiResponse<string>.FailureResult("Device not found"));
+                }
+
+                return Ok(ApiResponse<string>.SuccessResult("Device set as trusted successfully", "Device is now your trusted device"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting device {DeviceId} as trusted", deviceId);
+                return StatusCode(500, ApiResponse<string>.FailureResult("An error occurred while setting device as trusted"));
+            }
+        }
     }
 }

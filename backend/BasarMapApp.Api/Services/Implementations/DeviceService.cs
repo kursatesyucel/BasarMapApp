@@ -83,6 +83,8 @@ namespace BasarMapApp.Api.Services.Implementations
                 );
 
                 var existingDevice = await _devicesCollection.Find(filter).FirstOrDefaultAsync();
+                bool isNewDevice = existingDevice == null;
+                bool shouldSendAlert = false;
 
                 if (existingDevice != null)
                 {
@@ -93,10 +95,21 @@ namespace BasarMapApp.Api.Services.Implementations
 
                     await _devicesCollection.UpdateOneAsync(filter, update);
                     _logger.LogInformation("Updated device {DeviceId} for user {UserId}", deviceId, userId);
+                    
+                    // If this device is NOT trusted, send alert
+                    if (!existingDevice.IsTrusted)
+                    {
+                        shouldSendAlert = true;
+                        _logger.LogInformation("Login from untrusted device {DeviceId} for user {UserId}", deviceId, userId);
+                    }
                 }
                 else
                 {
                     // New device - create record
+                    // Check if user has any trusted devices
+                    var userDevicesFilter = Builders<UserDevice>.Filter.Eq(d => d.UserId, userId);
+                    var userDevicesCount = await _devicesCollection.CountDocumentsAsync(userDevicesFilter);
+                    
                     var deviceName = ParseUserAgent(userAgent);
                     var newDevice = new UserDevice
                     {
@@ -106,33 +119,48 @@ namespace BasarMapApp.Api.Services.Implementations
                         IpAddress = ipAddress,
                         LastLoginDate = DateTime.UtcNow,
                         FirstSeenDate = DateTime.UtcNow,
-                        IsTrusted = true
+                        // First device is trusted by default, others are not
+                        IsTrusted = userDevicesCount == 0
                     };
 
                     await _devicesCollection.InsertOneAsync(newDevice);
-                    _logger.LogInformation("New device {DeviceId} registered for user {UserId}", deviceId, userId);
+                    _logger.LogInformation("New device {DeviceId} registered for user {UserId} (IsTrusted: {IsTrusted})", 
+                        deviceId, userId, newDevice.IsTrusted);
+                    
+                    // Send alert for new device (unless it's the first/trusted device)
+                    shouldSendAlert = !newDevice.IsTrusted;
+                }
 
-                    // Send email alert for new device (fire-and-forget)
-                    _ = Task.Run(async () =>
+                // Send email alert if needed (fire-and-forget)
+                if (shouldSendAlert)
+                {
+                    var deviceNameForEmail = isNewDevice ? ParseUserAgent(userAgent) : existingDevice!.DeviceName;
+                    
+                    // Get user info BEFORE Task.Run to avoid DbContext disposed exception
+                    var user = await _userRepository.GetByIdAsync(userId);
+                    if (user != null)
                     {
-                        try
+                        var userEmail = user.Email;
+                        var username = user.Username;
+                        
+                        _ = Task.Run(async () =>
                         {
-                            var user = await _userRepository.GetByIdAsync(userId);
-                            if (user != null)
+                            try
                             {
                                 await _mailService.SendNewDeviceAlertAsync(
-                                    user.Email,
-                                    user.Username,
-                                    deviceName,
+                                    userEmail,
+                                    username,
+                                    deviceNameForEmail,
                                     ipAddress
                                 );
+                                _logger.LogInformation("Sent device alert email for user {UserId}, device {DeviceId}", userId, deviceId);
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Failed to send new device alert email for user {UserId}", userId);
-                        }
-                    });
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Failed to send device alert email for user {UserId}", userId);
+                            }
+                        });
+                    }
                 }
             }
             catch (Exception ex)
@@ -184,6 +212,43 @@ namespace BasarMapApp.Api.Services.Implementations
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error revoking device {DeviceId} for user {UserId}", deviceId, userId);
+                return false;
+            }
+        }
+
+        public async Task<bool> SetTrustedDeviceAsync(int userId, string deviceId)
+        {
+            try
+            {
+                // First, check if the device exists
+                var deviceFilter = Builders<UserDevice>.Filter.And(
+                    Builders<UserDevice>.Filter.Eq(d => d.UserId, userId),
+                    Builders<UserDevice>.Filter.Eq(d => d.DeviceId, deviceId)
+                );
+
+                var device = await _devicesCollection.Find(deviceFilter).FirstOrDefaultAsync();
+                
+                if (device == null)
+                {
+                    _logger.LogWarning("Device {DeviceId} not found for user {UserId}", deviceId, userId);
+                    return false;
+                }
+
+                // Set all devices of this user to IsTrusted = false
+                var userFilter = Builders<UserDevice>.Filter.Eq(d => d.UserId, userId);
+                var untrustUpdate = Builders<UserDevice>.Update.Set(d => d.IsTrusted, false);
+                await _devicesCollection.UpdateManyAsync(userFilter, untrustUpdate);
+
+                // Set the specified device as trusted
+                var trustUpdate = Builders<UserDevice>.Update.Set(d => d.IsTrusted, true);
+                await _devicesCollection.UpdateOneAsync(deviceFilter, trustUpdate);
+
+                _logger.LogInformation("Device {DeviceId} set as trusted for user {UserId}", deviceId, userId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting device {DeviceId} as trusted for user {UserId}", deviceId, userId);
                 return false;
             }
         }

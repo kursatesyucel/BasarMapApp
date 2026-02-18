@@ -16,5 +16,10 @@ export const deviceService = {
   async revokeDevice(deviceId: string): Promise<string> {
     const response = await api.delete<ApiResponse<string>>(`/devices/${deviceId}`);
     return response.data.message;
+  },
+
+  async setTrustedDevice(deviceId: string): Promise<string> {
+    const response = await api.patch<ApiResponse<string>>(`/devices/${deviceId}/trusted`);
+    return response.data.message;
   }
 };

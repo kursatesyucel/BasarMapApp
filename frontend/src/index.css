@@ -1014,6 +1014,16 @@ body {
   font-weight: 600;
 }
 
+.trusted-badge {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
 .device-details {
   display: flex;
   flex-direction: column;
@@ -1038,6 +1048,27 @@ body {
 
 .device-actions {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trust-button {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.trust-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
 }
 
 .revoke-button {
@@ -1094,6 +1125,7 @@ body {
     width: 100%;
   }
 
+  .trust-button,
   .revoke-button {
     width: 100%;
   }

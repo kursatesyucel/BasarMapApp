@@ -45,6 +45,24 @@ const DevicesPage: React.FC = () => {
     }
   };
 
+  const handleSetTrustedDevice = async (deviceId: string, deviceName: string) => {
+    if (!confirm(`"${deviceName}" cihazını güvenli cihaz olarak işaretlemek istediğinize emin misiniz? Diğer tüm cihazlar güvenli olmayan olarak işaretlenecektir.`)) {
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccessMessage('');
+      const message = await deviceService.setTrustedDevice(deviceId);
+      setSuccessMessage(message);
+      // Reload devices list
+      await loadDevices();
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Güvenli cihaz ayarlanırken hata oluştu';
+      setError(errorMessage);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('tr-TR', {
@@ -106,6 +124,9 @@ const DevicesPage: React.FC = () => {
                       {device.isCurrentDevice && (
                         <span className="current-badge">Bu Cihaz</span>
                       )}
+                      {device.isTrusted && (
+                        <span className="trusted-badge">🔒 Güvenli Cihaz</span>
+                      )}
                     </div>
                     <div className="device-details">
                       <div className="device-detail">
@@ -123,6 +144,15 @@ const DevicesPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="device-actions">
+                    {!device.isTrusted && (
+                      <button
+                        onClick={() => handleSetTrustedDevice(device.deviceId, device.deviceName)}
+                        className="trust-button"
+                        title="Güvenli Cihaz Yap"
+                      >
+                        🔒 Güvenli Cihaz Yap
+                      </button>
+                    )}
                     {!device.isCurrentDevice && (
                       <button
                         onClick={() => handleRevokeDevice(device.deviceId, device.deviceName)}
@@ -140,8 +170,8 @@ const DevicesPage: React.FC = () => {
 
           <div className="devices-footer">
             <div className="security-tip">
-              <strong>💡 Güvenlik İpucu:</strong> Tanımadığınız veya artık kullanmadığınız cihazları düzenli olarak kaldırın.
-              Yeni bir cihazdan giriş yaptığınızda e-posta ile bildirim alırsınız.
+              <strong>💡 Güvenlik İpucu:</strong> Güvenli cihaz olarak işaretlediğiniz cihaz dışındaki tüm cihazlardan giriş yaptığınızda e-posta ile bildirim alırsınız.
+              Tanımadığınız veya artık kullanmadığınız cihazları düzenli olarak kaldırın.
             </div>
           </div>
         </div>
