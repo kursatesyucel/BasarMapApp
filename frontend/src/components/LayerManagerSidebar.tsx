@@ -6,9 +6,12 @@ import {
   Navigation, 
   ChevronDown, 
   ChevronRight,
-  Search
+  ChevronLeft,
+  Search,
+  Map
 } from 'lucide-react';
 import { SettlementDto } from '../services/boundaryService';
+import { BASEMAP_OPTIONS, BasemapId } from '../constants/basemaps';
 
 // ============= Types =============
 
@@ -32,6 +35,8 @@ interface LayerManagerSidebarProps {
   cityAndCapitalCenters: SettlementDto[];
   onCitySelect: (settlement: SettlementDto) => void;
   isLoading?: boolean;
+  basemap: BasemapId;
+  onBasemapChange: (basemap: BasemapId) => void;
 }
 
 const LayerManagerSidebar: React.FC<LayerManagerSidebarProps> = ({
@@ -41,8 +46,11 @@ const LayerManagerSidebar: React.FC<LayerManagerSidebarProps> = ({
   onOpacityChange,
   cityAndCapitalCenters,
   onCitySelect,
-  isLoading = false
+  isLoading = false,
+  basemap,
+  onBasemapChange
 }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isBoundariesExpanded, setIsBoundariesExpanded] = useState(true);
   const [isSettlementsExpanded, setIsSettlementsExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,17 +66,55 @@ const LayerManagerSidebar: React.FC<LayerManagerSidebarProps> = ({
   }, [cityAndCapitalCenters, searchQuery]);
 
   return (
-    <div className="layer-manager-sidebar">
+    <div className={`layer-manager-sidebar ${isCollapsed ? 'layer-manager-sidebar--collapsed' : ''}`}>
       {/* Header */}
-      <div className="sidebar-header-glass">
-        <div className="flex items-center gap-2">
-          <Layers className="w-5 h-5 text-blue-400" />
-          <h2 className="text-lg font-bold text-white">Katman Yöneticisi</h2>
+      <div className="sidebar-header-glass layer-manager-header">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Layers className="w-5 h-5 text-blue-400 flex-shrink-0" />
+          {!isCollapsed && <h2 className="text-lg font-bold text-white truncate">Katman Yöneticisi</h2>}
         </div>
+        <button
+          type="button"
+          className="layer-manager-toggle-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsCollapsed(!isCollapsed);
+          }}
+          title={isCollapsed ? 'Katman Yöneticisini Aç' : 'Katman Yöneticisini Kapat'}
+          aria-label={isCollapsed ? 'Katman Yöneticisini Aç' : 'Katman Yöneticisini Kapat'}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-5 h-5" />
+          ) : (
+            <ChevronLeft className="w-5 h-5" />
+          )}
+        </button>
       </div>
 
       {/* Content */}
+      {!isCollapsed && (
       <div className="sidebar-content-scroll">
+        {/* Harita Altlığı */}
+        <div className="layer-section">
+          <div className="section-header-glass">
+            <Map className="w-4 h-4 text-blue-400" />
+            <span className="font-semibold text-white">Harita Altlığı</span>
+          </div>
+          <div className="p-3">
+            <select
+              className="city-select-glass basemap-select w-full"
+              value={basemap}
+              onChange={(e) => onBasemapChange(e.target.value as BasemapId)}
+            >
+              {BASEMAP_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {/* Navigasyon - Şehir Seçimi */}
         <div className="layer-section">
           <div className="section-header-glass">
@@ -269,6 +315,7 @@ const LayerManagerSidebar: React.FC<LayerManagerSidebarProps> = ({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

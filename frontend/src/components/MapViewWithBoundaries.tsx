@@ -14,6 +14,7 @@ import FeaturesWithinPolygonModal from './FeaturesWithinPolygonModal';
 import CameraPopup from './CameraPopup';
 import LayerManagerSidebar, { LayerState, LayerOpacity } from './LayerManagerSidebar';
 import { CreatePointDto, CreateLineDto, CreatePolygonDto, Point, Camera } from '../types';
+import { BASEMAP_OPTIONS, BasemapId } from '../constants/basemaps';
 
 // Fix for default markers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -93,6 +94,7 @@ interface MapViewProps {
 const MapViewWithBoundaries: React.FC<MapViewProps> = ({ mapFeatures }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const layersRef = useRef<{
     points: L.LayerGroup;
     lines: L.LayerGroup;
@@ -139,6 +141,8 @@ const MapViewWithBoundaries: React.FC<MapViewProps> = ({ mapFeatures }) => {
     cityMarkers: 1.0,
     districtMarkers: 1.0
   });
+
+  const [basemap, setBasemap] = useState<BasemapId>('standard');
 
   const [provinces, setProvinces] = useState<ProvinceDto[]>([]);
   const [cityAndCapitalCenters, setCityAndCapitalCenters] = useState<SettlementDto[]>([]);
@@ -213,13 +217,8 @@ const MapViewWithBoundaries: React.FC<MapViewProps> = ({ mapFeatures }) => {
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Initialize map
+    // Initialize map (tile layer added by basemap effect)
     const map = L.map(mapRef.current).setView([39.0, 35.0], 6); // Turkey center
-
-    // Add tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
 
     // Create layer groups
     const pointsLayer = L.layerGroup().addTo(map);
@@ -525,12 +524,30 @@ const MapViewWithBoundaries: React.FC<MapViewProps> = ({ mapFeatures }) => {
     mapInstanceRef.current = map;
 
     return () => {
+      tileLayerRef.current = null;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
   }, []);
+
+  // ============= Basemap (Harita Altlığı) Switch =============
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    const config = BASEMAP_OPTIONS.find(b => b.id === basemap);
+    if (!config) return;
+
+    const map = mapInstanceRef.current;
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+    const newTileLayer = L.tileLayer(config.url, {
+      attribution: config.attribution
+    }).addTo(map);
+    tileLayerRef.current = newTileLayer;
+  }, [basemap]);
 
   // ============= Render Boundary Layers =============
   
@@ -957,6 +974,8 @@ const MapViewWithBoundaries: React.FC<MapViewProps> = ({ mapFeatures }) => {
         cityAndCapitalCenters={cityAndCapitalCenters}
         onCitySelect={handleCitySelect}
         isLoading={boundariesLoading}
+        basemap={basemap}
+        onBasemapChange={setBasemap}
       />
 
       <FeatureForm
