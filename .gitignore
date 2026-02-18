@@ -672,3 +672,33 @@ backend/BasarMapApp.Api/LOGGING_QUICK_START.md
 backend/BasarMapApp.Api/LOGGING_FIXES_v1.1.md
 backend/BasarMapApp.Api/LOGGING_DOCUMENTATION.md
 backend/BasarMapApp.Api/LOGGING_CHANGES.md
+
+
+
+# --- Güvenlik (Çok Önemli) ---
+.env
+.env.production
+*.pfx
+*.key
+*.pem
+
+# --- Gereksiz Klasörler ---
+.idea/
+.vscode/
+bin/
+obj/
+node_modules/
+dist/
+build/
+out/
+.DS_Store
+Thumbs.db
+
+# --- Docker ---
+docker-compose.override.yml
+
+# --- Loglar ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
