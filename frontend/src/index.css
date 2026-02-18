@@ -883,6 +883,9 @@ body {
 
 /* Devices Page Styles */
 .devices-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
