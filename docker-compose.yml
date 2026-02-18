@@ -1,47 +1,77 @@
 version: '3.8'
 
 services:
-  # PostgreSQL with PostGIS
   database:
     image: postgis/postgis:15-3.3
+    container_name: basarmap_db
+    restart: always
     environment:
-      POSTGRES_DB: basarmapdb
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres123}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: basarmapdb
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    networks:
+      - app-network
 
-  # Backend API
+  mongodb:
+    image: mongo:7.0
+    container_name: basarmap_mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+
   backend:
     build:
       context: ./backend
-      dockerfile: BasarMapApp.Api/Dockerfile
+      dockerfile: Dockerfile
+    container_name: basarmap_api
+    restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=database;Port=5432;Database=basarmapdb;Username=postgres;Password=${DB_PASSWORD:-postgres123}
-      - ASPNETCORE_URLS=http://+:80
-    ports:
-      - "5000:80"
+      - ConnectionStrings__DefaultConnection=Host=database;Port=5432;Database=basarmapdb;Username=postgres;Password=${DB_PASSWORD}
+      - MongoDbSettings__ConnectionString=mongodb://admin:${DB_PASSWORD}@mongodb:27017
+      - MongoDbSettings__DatabaseName=BasarMapAppLogs
+      - MongoDbSettings__UserDevicesCollectionName=UserDevices
+      - MongoDbSettings__LoginLogsCollectionName=LoginLogs
+      - MongoDbSettings__AuditLogsCollectionName=AuditLogs
+      - JwtSettings__Secret=${JWT_SECRET}
+      - JwtSettings__Issuer=BasarMapApp
+      - JwtSettings__Audience=BasarMapAppUsers
+      - MailSettings__Email=${MAIL_EMAIL}
+      - MailSettings__Password=${MAIL_PASSWORD}
+      - MailSettings__Host=smtp.gmail.com
+      - MailSettings__Port=587
+      - FrontendUrl=${FRONTEND_URL}
+      - SEED_ADMIN_IN_PROD=true
     depends_on:
-      database:
-        condition: service_healthy
+      - database
+      - mongodb
+    networks:
+      - app-network
 
-  # Frontend
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: basarmap_web
+    restart: always
     ports:
-      - "3000:80"
+      - "80:80"
     depends_on:
       - backend
+    networks:
+      - app-network
 
 volumes:
-  postgres_data: 
+  postgres_data:
+  mongo_data:
+
+networks:
+  app-network:
+    driver: bridge 

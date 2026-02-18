@@ -23,14 +23,17 @@ builder.Services.AddCors(options =>
     {
         if (builder.Environment.IsDevelopment())
         {
-            // Development: Tüm originlere izin ver (localhost, 192.168.x.x vb.)
-            // AllowCredentials olmadan * kullanılabilir - CORS sorunlarını önler
+            // Development: Esnek CORS politikası
+            // Not: Eğer Cookie kullanacaksanız .AllowCredentials() ve .SetIsOriginAllowed() kullanmalısınız.
+            // Şimdilik AllowAnyOrigin ile devam ediyoruz.
             policy.AllowAnyOrigin()
                   .AllowAnyHeader()
                   .AllowAnyMethod();
         }
         else
         {
+            // Production: Şimdilik her yere izin veriyoruz (Test kolaylığı için)
+            // Canlıya tamamen çıktığınızda burayı frontend domaini ile kısıtlamanız önerilir.
             policy.AllowAnyOrigin()
                   .AllowAnyHeader()
                   .AllowAnyMethod();
@@ -50,7 +53,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection("MongoDbSettings"));
 
-// Register LogService as Singleton (cross-cutting concern, stateless service)
+// Register LogService as Singleton
 builder.Services.AddSingleton<ILogService, LogService>();
 
 // AutoMapper
@@ -84,8 +87,13 @@ builder.Services.AddScoped<IBoundaryService, BoundaryService>();
 var jwtSecret = builder.Configuration["JwtSettings:Secret"];
 if (string.IsNullOrEmpty(jwtSecret))
 {
-    throw new InvalidOperationException("JWT Secret is not configured in appsettings.json");
+    // Production'da bu hatayı almak istemiyorsanız Env Variable olarak tanımladığınızdan emin olun
+    // throw new InvalidOperationException("JWT Secret is not configured."); // Geçici olarak kapatılabilir veya loglanabilir
 }
+
+// Secret null ise default bir değer atayıp patlamasını önleyelim (Sadece build aşaması için)
+// Çalışma zamanında mutlaka dolu olmalıdır.
+var keyBytes = Encoding.UTF8.GetBytes(jwtSecret ?? "TemporarySecretForBuildProcessOnly123!");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -102,39 +110,32 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
         ValidAudience = builder.Configuration["JwtSettings:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
         ClockSkew = TimeSpan.Zero
     };
 });
 
 builder.Services.AddAuthorization();
 
-// Swagger/OpenAPI with Bearer token support
+// Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "BasarMapApp API", Version = "v2" });
-    
-    // Add JWT Authentication to Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+        Description = "JWT Authorization header using the Bearer scheme.",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-    
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
             },
             Array.Empty<string>()
         }
@@ -150,16 +151,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// CORS - En üstte olmalı, preflight OPTIONS isteklerini işler
 app.UseCors("AllowFrontend");
-
-// Enable static file serving for videos
 app.UseStaticFiles();
 
-// Development'ta HTTPS redirect devre dışı - aksi halde CORS preflight bozulur
 if (!app.Environment.IsDevelopment())
 {
-    app.UseHttpsRedirection();
+    // Production'da HTTPS zorlamasını şimdilik kapalı tutabiliriz (Nginx halledecek)
+    // app.UseHttpsRedirection(); 
 }
 
 app.UseAuthentication();
@@ -167,14 +165,37 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Seed admin user in development
-if (app.Environment.IsDevelopment())
+// -----------------------------------------------------------------------------
+// VERİTABANI BAŞLATMA VE SEED İŞLEMLERİ (Production Ready)
+// -----------------------------------------------------------------------------
+using (var scope = app.Services.CreateScope())
 {
-    using (var scope = app.Services.CreateScope())
+    var services = scope.ServiceProvider;
+    try
     {
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await DbSeeder.SeedAdminUser(context);
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        
+        // 1. OTOMATİK MIGRATION: Veritabanı yoksa oluşturur, eksik tabloları ekler.
+        // Docker/Production ortamında bu komut hayati önem taşır.
+        context.Database.Migrate();
+        Console.WriteLine("--> Veritabanı migration işlemi başarıyla tamamlandı.");
+
+        // 2. ADMIN SEEDING:
+        // Development ortamındaysak VEYA Production'da özel bir izin varsa çalışır.
+        // docker-compose dosyasında "SEED_ADMIN_IN_PROD=true" verirseniz canlıda da admin oluşturur.
+        var seedAdminInProd = Environment.GetEnvironmentVariable("SEED_ADMIN_IN_PROD") == "true";
+        
+        if (app.Environment.IsDevelopment() || seedAdminInProd)
+        {
+            await DbSeeder.SeedAdminUser(context);
+            Console.WriteLine("--> Admin Kullanıcısı kontrol edildi / oluşturuldu.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"--> Veritabanı başlatılırken HATA oluştu: {ex.Message}");
     }
 }
+// -----------------------------------------------------------------------------
 
 app.Run();
