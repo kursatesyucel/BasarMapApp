@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import { UseMapFeaturesReturn } from '../hooks/useMapFeatures';
 import { useAuth } from '../hooks/useAuth';
 import { Point, Line, Polygon, Camera, UpdatePointDto, UpdateLineDto, UpdatePolygonDto, UpdateCameraDto } from '../types';
@@ -29,6 +30,7 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
 
   const { hasRole } = useAuth();
 
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingFeature, setEditingFeature] = useState<{
     feature: Point | Line | Polygon | Camera;
@@ -333,26 +335,39 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
   };
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-header">
-        <h2>Map Features</h2>
-        <button 
-          onClick={refreshAll} 
-          disabled={loading}
-          style={{
-            background: 'transparent',
-            border: '1px solid white',
-            color: 'white',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '0.75rem'
-          }}
+    <div className={`sidebar ${isCollapsed ? 'sidebar--collapsed' : ''}`}>
+      <div className="sidebar-header sidebar-features-header">
+        <div className="sidebar-header-left">
+          <Layers className="sidebar-icon" />
+          {!isCollapsed && (
+            <>
+              <h2>Map Features</h2>
+              <button 
+                onClick={refreshAll} 
+                disabled={loading}
+                className="sidebar-refresh-btn"
+              >
+                {loading ? 'Loading...' : 'Refresh'}
+              </button>
+            </>
+          )}
+        </div>
+        <button
+          type="button"
+          className="sidebar-toggle-btn"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          title={isCollapsed ? 'Map Features\'i Aç' : 'Map Features\'i Kapat'}
+          aria-label={isCollapsed ? 'Map Features\'i Aç' : 'Map Features\'i Kapat'}
         >
-          {loading ? 'Loading...' : 'Refresh'}
+          {isCollapsed ? (
+            <ChevronLeft className="w-5 h-5" title="Genişlet" />
+          ) : (
+            <ChevronRight className="w-5 h-5" title="Daralt" />
+          )}
         </button>
       </div>
 
+      {!isCollapsed && (
       <div className="sidebar-content">
         {error && <div className="error">{error}</div>}
 
@@ -406,6 +421,7 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
 
         {renderSelectedFeatureDetails()}
       </div>
+      )}
 
       <EditFeatureModal
         isOpen={showEditModal}

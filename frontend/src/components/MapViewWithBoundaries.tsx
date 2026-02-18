@@ -532,6 +532,19 @@ const MapViewWithBoundaries: React.FC<MapViewProps> = ({ mapFeatures }) => {
     };
   }, []);
 
+  // ============= Map Resize Handler (sidebar collapse/expand fix) =============
+  useEffect(() => {
+    if (!mapRef.current || !mapInstanceRef.current) return;
+
+    const map = mapInstanceRef.current;
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    resizeObserver.observe(mapRef.current);
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
   // ============= Basemap (Harita Altlığı) Switch =============
   useEffect(() => {
     if (!mapInstanceRef.current) return;
