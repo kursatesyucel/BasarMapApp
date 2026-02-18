@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import axios from 'axios';
 import { getDeviceId } from '../utils/deviceFingerprint';
 

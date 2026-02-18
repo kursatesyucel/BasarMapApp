@@ -23,10 +23,39 @@ builder.Services.AddCors(options =>
     {
         if (builder.Environment.IsDevelopment())
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
+            // Development: Hem localhost hem de local network IP'lerden erişime izin ver
+            policy.SetIsOriginAllowed(origin =>
+            {
+                // localhost ve 127.0.0.1'e her zaman izin ver
+                if (origin.StartsWith("http://localhost:") || origin.StartsWith("https://localhost:") ||
+                    origin.StartsWith("http://127.0.0.1:") || origin.StartsWith("https://127.0.0.1:"))
+                {
+                    return true;
+                }
+                
+                // Local network IP'lere izin ver (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+                var uri = new Uri(origin);
+                var host = uri.Host;
+                
+                if (host.StartsWith("192.168.") || 
+                    host.StartsWith("10.") ||
+                    host.StartsWith("172.16.") || host.StartsWith("172.17.") ||
+                    host.StartsWith("172.18.") || host.StartsWith("172.19.") ||
+                    host.StartsWith("172.20.") || host.StartsWith("172.21.") ||
+                    host.StartsWith("172.22.") || host.StartsWith("172.23.") ||
+                    host.StartsWith("172.24.") || host.StartsWith("172.25.") ||
+                    host.StartsWith("172.26.") || host.StartsWith("172.27.") ||
+                    host.StartsWith("172.28.") || host.StartsWith("172.29.") ||
+                    host.StartsWith("172.30.") || host.StartsWith("172.31."))
+                {
+                    return true;
+                }
+                
+                return false;
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
         }
         else
         {
