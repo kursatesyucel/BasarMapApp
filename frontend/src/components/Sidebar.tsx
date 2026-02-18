@@ -360,9 +360,9 @@ const Sidebar: React.FC<SidebarProps> = ({ mapFeatures }) => {
           aria-label={isCollapsed ? 'Map Features\'i Aç' : 'Map Features\'i Kapat'}
         >
           {isCollapsed ? (
-            <ChevronLeft className="w-5 h-5" title="Genişlet" />
+            <ChevronLeft className="w-5 h-5" />
           ) : (
-            <ChevronRight className="w-5 h-5" title="Daralt" />
+            <ChevronRight className="w-5 h-5" />
           )}
         </button>
       </div>
